@@ -11,6 +11,13 @@ Evaluate the official AMD FidelityFX SDK 2.x (the current AMD SDK family that in
 ### Frame generation (separate milestone)
 Do not implement a fake 2x toggle. First map the present/swapchain lifecycle for D3D12 and Vulkan, then prototype an opt-in frame interpolation path with explicit generated-vs-real frame metrics. It must handle camera cuts, UI, stereo, pause/menus, variable frame pacing, input latency and shutdown/reinitialization. If reliable motion vectors are unavailable, any optical-flow fallback must be clearly marked experimental and evaluated for artifacts.
 
+## Dolphin integration points confirmed in source
+
+- `VideoCommon::Presenter` owns the presentation path and the `PostProcessing` instance. Its `RenderXFBToScreen` method draws the selected XFB to the screen and performs post-processing.
+- `VideoCommon::PostProcessing::BlitFromTexture` receives a source color texture and source/destination rectangles. This is a suitable location for a spatial post-process, but it is not a source of per-object motion vectors or depth history.
+- `AbstractGfx` is Dolphin's backend abstraction and exposes texture/framebuffer creation, compute dispatch, `BindBackbuffer` and `PresentBackbuffer`. The D3D12 backend implements these operations and owns a swapchain with per-buffer texture/framebuffer resources.
+- Therefore, a true FSR 2/3 path must extend the frame data/resource flow upstream of the final color-only post-process. A frame-generation path must coordinate with each backend's swapchain and GPU synchronization; a shader-only edit in `PostProcessing.cpp` cannot provide correct generated frames.
+
 ## Required acceptance tests
 
 - Correctness: no broken UI, missing layers, ghosting, flicker, black frames or shader compile failures.
