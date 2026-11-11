@@ -28,7 +28,7 @@ Frame generation is a separate subsystem. Even a successful 2x frame-generation 
 
 ## Build on Windows x64
 
-The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root on a Windows development machine with Git for Windows, CMake, Ninja, Visual Studio 2026 C++ build tools and the Windows SDK installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. This script has not been executed in the current environment; a successful build is not yet verified.
+The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root in an **x64 Native Tools Command Prompt for Visual Studio** on Windows, with Git for Windows, MSVC C++ build tools, the Windows SDK, CMake and Ninja installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. This script has not been executed in the current environment; a successful build is not yet verified.
 
 ## Try the current shader
 
