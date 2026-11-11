@@ -10,7 +10,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 
 - [x] Dedicated branch: `fsr3-frame-generation`.
 - [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl`.
-- [ ] Integrate a true AMD FidelityFX Super Resolution implementation (FSR 1 EASU/RCAS or a maintained SDK integration).
+- [ ] Integrate the official AMD FidelityFX SDK 2.x path for FSR 2/3 where supported, or FSR 1 EASU/RCAS as a separately selectable spatial mode. The official SDK documents D3D12 and Vulkan support; evaluate its exact version, API and licensing before adding source.
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
