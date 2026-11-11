@@ -5,7 +5,7 @@ cd /d "%~dp0"
 set "LOG=%~dp0build_fsr_edition.log"
 set "OUTPUT=%~dp0build\release\x64\Binaries"
 
-echo Dolphin FSR Edition - Windows build > "%LOG%"
+echo Dolphin FSR Edition - Windows x64 build > "%LOG%"
 echo Repository: %CD%>> "%LOG%"
 echo.>> "%LOG%"
 
@@ -25,7 +25,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo [1/2] Initializing submodules...
+echo [1/3] Initializing submodules...
 git submodule update --init --recursive >> "%LOG%" 2>&1
 if errorlevel 1 (
   echo ERROR: Submodule initialization failed. See build_fsr_edition.log
@@ -33,14 +33,16 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo [2/2] Configuring and building Dolphin (Ninja Release x64)...
-cmake --workflow ninja-release-x64 >> "%LOG%" 2>&1
+echo [2/3] Configuring and building with the repository Visual Studio x64 preset...
+echo This preset requires Visual Studio 2026 C++ build tools and the Windows SDK.
+cmake --workflow --preset visualstudio-release-x64 >> "%LOG%" 2>&1
 if errorlevel 1 (
   echo BUILD FAILED. See build_fsr_edition.log for details.
   pause
   exit /b 1
 )
 
+echo [3/3] Checking executable...
 if not exist "%OUTPUT%\Dolphin.exe" (
   echo Build command completed, but Dolphin.exe was not found at:
   echo %OUTPUT%
