@@ -43,9 +43,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dolphin-fsr-edition-windows-x64
-          path: |
-            build/release/x64/Binaries/Dolphin.exe
-            build/release/x64/Binaries/*.dll
-            build/release/x64/Binaries/QtPlugins
+          path: build/release/x64/Binaries/**
           if-no-files-found: warn
           retention-days: 14
