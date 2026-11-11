@@ -9,7 +9,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 ## Current implementation status
 
 - [x] Dedicated branch: `fsr3-frame-generation`.
-- [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl`.
+- [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl` (edge-aware sharpening prototype; not FSR).
 - [ ] Integrate the official AMD FidelityFX SDK 2.x path for FSR 2/3 where supported, or FSR 1 EASU/RCAS as a separately selectable spatial mode. The official SDK documents D3D12 and Vulkan support; evaluate its exact version, API and licensing before adding source.
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
@@ -36,7 +36,7 @@ The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository 
 3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR_Spatial`.
 4. Compare against post-processing off at the same internal and output resolutions.
 
-The shader is a prototype. If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
+The shader is a prototype. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the file in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
 
 ## Safe performance baseline for the target laptop
 
