@@ -76,7 +76,8 @@ void EnhancementsWidget::CreateWidgets()
   const QStringList resolution_extra_options{
       tr("720p"),         tr("1080p"),        tr("1440p"), QStringLiteral(""),
       tr("4K"),           QStringLiteral(""), tr("5K"),    QStringLiteral(""),
-      QStringLiteral(""), QStringLiteral(""), tr("8K")};
+      QStringLiteral(""), QStringLiteral(""), tr("8K"),    QStringLiteral(""),
+      QStringLiteral(""), QStringLiteral(""), tr("10K (experimental)")};
   const int visible_resolution_option_count = static_cast<int>(resolution_options.size()) +
                                               static_cast<int>(resolution_extra_options.size());
 
