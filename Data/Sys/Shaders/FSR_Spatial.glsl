@@ -9,15 +9,25 @@
 // The filter operates on Dolphin's final color image. It can modestly improve
 // perceived edge definition, but cannot recreate missing geometry or detail.
 
+[configuration]
+[OptionRangeFloat]
+GUIName = Sharpening Strength
+OptionName = sharpness
+MinValue = 0.0
+MaxValue = 1.0
+DefaultValue = 0.35
+StepAmount = 0.05
+[/OptionRangeFloat]
+[/configuration]
+
 float LumaFSR(float3 color)
 {
   return dot(color, float3(0.299, 0.587, 0.114));
 }
 
-float4 mainFSRSpatial(float2 frag_coord)
+float4 mainFSRSpatial(float2 uv)
 {
   float2 inv_resolution = GetInvResolution();
-  float2 uv = frag_coord * inv_resolution;
 
   float3 center = SampleLocation(uv).rgb;
   float3 north = SampleLocation(uv + float2(0.0, -1.0) * inv_resolution).rgb;
@@ -29,7 +39,7 @@ float4 mainFSRSpatial(float2 frag_coord)
   float local_contrast = abs(LumaFSR(center - average));
 
   // Reduce sharpening in high-contrast areas to limit halos and ringing.
-  float strength = 0.35 / (1.0 + local_contrast * 4.0);
+  float strength = GetOption(sharpness) / (1.0 + local_contrast * 4.0);
   float3 sharpened = center + (center - average) * strength;
 
   // Clamp to the local 5-tap range to avoid overshoot.
@@ -42,5 +52,5 @@ float4 mainFSRSpatial(float2 frag_coord)
 
 void main()
 {
-  SetOutput(mainFSRSpatial(GetCoordinates() * GetResolution()));
+  SetOutput(mainFSRSpatial(GetCoordinates()));
 }
