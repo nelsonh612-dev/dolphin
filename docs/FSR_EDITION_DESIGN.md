@@ -30,3 +30,9 @@ Do not implement a fake 2x toggle. First map the present/swapchain lifecycle for
 ## Current blocker
 
 The current branch has only a shader prototype and documentation. No C++ frame-generation implementation, FSR SDK integration, custom settings page, Windows binary, or runtime validation is claimed.
+
+## First FSR implementation increment
+
+The branch now contains `Data/Sys/Shaders/FSR1_EASU.glsl`, a shader-side adaptation of AMD's FSR 1 EASU algorithm. It maps the current post-process source rectangle to the output pixel grid, evaluates the 12-tap edge-adaptive reconstruction kernel, uses point sampling for the taps, and clamps the result to the nearest 2x2 neighborhood to reduce ringing. The AMD copyright and permissive license notice are retained in the shader.
+
+This is a spatial EASU pass, not the complete FidelityFX SDK integration. RCAS is not included yet. The shader must still be compiled and visually validated on Dolphin's D3D12 and Vulkan paths before it is considered usable. The original `FSR_Spatial.glsl` remains as a simpler comparison filter.
