@@ -25,6 +25,10 @@ FSR 2/3 temporal upscaling requires motion vectors, depth, jitter metadata and a
 
 Frame generation is a separate subsystem. Even a successful 2x frame-generation path does not increase emulated CPU/game logic speed: 30 real emulation FPS plus generated intermediate images may display 60 images per second while the game simulation still advances at 30 FPS. Input latency and artifacts must be measured.
 
+## Build on Windows x64
+
+The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root on a Windows development machine with Git for Windows, CMake, Ninja, Visual Studio 2026 C++ build tools and the Windows SDK installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. This script has not been executed in the current environment; a successful build is not yet verified.
+
 ## Try the current shader
 
 1. Build this branch using Dolphin's normal Windows build instructions.
