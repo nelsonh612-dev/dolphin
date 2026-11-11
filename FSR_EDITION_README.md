@@ -51,3 +51,9 @@ The requested 5K/8K/above-8K output modes are experimental stress tests, not per
 ## Licensing
 
 Dolphin is GPL-2.0-or-later. This branch must preserve Dolphin's licensing and include the required license notices for any third-party FidelityFX code or SDK added later. The current shader is original experimental code and does not contain AMD SDK source.
+
+## Experimental internal resolution above 8K
+
+This branch raises the selectable maximum EFB/internal scale to 16x and labels the 16x entry as **10K (experimental)** in Graphics > Enhancements. At the GameCube/Wii base EFB size of 640x528, 16x corresponds to 10240x8448 internal pixels. This is an internal rendering stress test; it does not change a 1920x1080 monitor into a 10K display and the final image is still presented at the window/output size.
+
+**Warning:** 16x can consume several gigabytes across color/depth buffers, copies and caches, especially in games with multiple render targets. On an RTX 3060 Laptop GPU, start at 2x or 3x. Use 16x only as a deliberate stress test, monitor VRAM, and lower the scale immediately if allocation fails, the game slows severely, or the driver resets. The 10K option is not a recommended everyday setting.
