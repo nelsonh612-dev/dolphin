@@ -9,6 +9,7 @@
 // The filter operates on Dolphin's final color image. It can modestly improve
 // perceived edge definition, but cannot recreate missing geometry or detail.
 
+/*
 [configuration]
 [OptionRangeFloat]
 GUIName = Sharpening Strength
@@ -19,6 +20,7 @@ DefaultValue = 0.35
 StepAmount = 0.05
 [/OptionRangeFloat]
 [/configuration]
+*/
 
 float LumaFSR(float3 color)
 {
