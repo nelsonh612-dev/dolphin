@@ -1,72 +1,46 @@
-// Dolphin FSR Edition - experimental edge-adaptive spatial reconstruction
+// Dolphin FSR Edition - experimental spatial sharpening filter
 // Copyright (C) 2026
 // SPDX-License-Identifier: GPL-2.0-or-later
 //
-// This is an original, lightweight spatial reconstruction shader inspired by
-// edge-adaptive upscaling concepts. It is NOT AMD FidelityFX Super Resolution
-// (FSR 1/2/3), does not use temporal data, and does not generate frames.
+// Original spatial post-processing experiment. This is NOT AMD FidelityFX
+// Super Resolution (FSR 1/2/3), does not perform temporal reconstruction,
+// and does not generate intermediate frames.
 //
-// Dolphin's post-processing stage receives the already-rendered image. This
-// shader can improve perceived sharpness when the internal resolution is lower
-// than the output resolution, but it cannot recover missing geometry or detail.
+// The filter operates on Dolphin's final color image. It can modestly improve
+// perceived edge definition, but cannot recreate missing geometry or detail.
 
-float LumaFSR(float3 c)
+float LumaFSR(float3 color)
 {
-  return dot(c, float3(0.299, 0.587, 0.114));
+  return dot(color, float3(0.299, 0.587, 0.114));
 }
 
-float3 ClampToNeighborhood(float2 uv, float2 px, float3 center)
+float4 mainFSRSpatial(float2 frag_coord)
 {
-  float3 lo = center;
-  float3 hi = center;
-  for (int y = -1; y <= 1; ++y)
-  {
-    for (int x = -1; x <= 1; ++x)
-    {
-      float3 c = SampleLocation(uv + float2(float(x), float(y)) * px).rgb;
-      lo = min(lo, c);
-      hi = max(hi, c);
-    }
-  }
-  return clamp(center, lo, hi);
-}
+  float2 inv_resolution = GetInvResolution();
+  float2 uv = frag_coord * inv_resolution;
 
-float4 FSRSpatial(float2 uv)
-{
-  float2 px = GetInvResolution();
-  float3 c = SampleLocation(uv).rgb;
+  float3 center = SampleLocation(uv).rgb;
+  float3 north = SampleLocation(uv + float2(0.0, -1.0) * inv_resolution).rgb;
+  float3 south = SampleLocation(uv + float2(0.0, 1.0) * inv_resolution).rgb;
+  float3 east = SampleLocation(uv + float2(1.0, 0.0) * inv_resolution).rgb;
+  float3 west = SampleLocation(uv + float2(-1.0, 0.0) * inv_resolution).rgb;
 
-  // Four axial and four diagonal taps. Weights adapt to local luminance
-  // similarity, reducing blur across strong edges.
-  float3 sum = c * 2.0;
-  float weight_sum = 2.0;
-  float center_luma = LumaFSR(c);
+  float3 average = (north + south + east + west) * 0.25;
+  float local_contrast = abs(LumaFSR(center - average));
 
-  const float offsets[8] = float[8](
-    -1.0, 0.0, 1.0, 0.0,
-     0.0,-1.0, 0.0, 1.0
-  );
+  // Reduce sharpening in high-contrast areas to limit halos and ringing.
+  float strength = 0.35 / (1.0 + local_contrast * 4.0);
+  float3 sharpened = center + (center - average) * strength;
 
-  for (int i = 0; i < 4; ++i)
-  {
-    float2 d = float2(offsets[i * 2], offsets[i * 2 + 1]) * px;
-    float3 tap = SampleLocation(uv + d).rgb;
-    float edge = abs(LumaFSR(tap) - center_luma);
-    float w = 1.0 / (1.0 + edge * 10.0);
-    sum += tap * w;
-    weight_sum += w;
-  }
+  // Clamp to the local 5-tap range to avoid overshoot.
+  float3 local_min = min(center, min(min(north, south), min(east, west)));
+  float3 local_max = max(center, max(max(north, south), max(east, west)));
+  sharpened = clamp(sharpened, local_min, local_max);
 
-  float3 local_average = sum / weight_sum;
-  float3 low = c - local_average;
-
-  // Conservative sharpening with neighborhood clipping to limit ringing.
-  float3 sharpened = c + low * 0.45;
-  sharpened = ClampToNeighborhood(uv, px, sharpened);
   return float4(max(sharpened, float3(0.0, 0.0, 0.0)), 1.0);
 }
 
 void main()
 {
-  SetOutput(FSRSpatial(GetCoordinates()));
+  SetOutput(mainFSRSpatial(GetCoordinates() * GetResolution()));
 }
