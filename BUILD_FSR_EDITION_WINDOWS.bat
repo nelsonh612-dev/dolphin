@@ -33,9 +33,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo [2/3] Configuring and building with the repository Visual Studio x64 preset...
-echo This preset requires Visual Studio 2026 C++ build tools and the Windows SDK.
-cmake --workflow --preset visualstudio-release-x64 >> "%LOG%" 2>&1
+where cl >nul 2>nul
+if errorlevel 1 (
+  echo ERROR: MSVC compiler was not found in PATH.
+  echo Open the x64 Native Tools Command Prompt for Visual Studio, then run this file again.
+  echo ERROR: MSVC compiler was not found in PATH.>> "%LOG%"
+  pause
+  exit /b 1
+)
+
+echo [2/3] Configuring and building with Dolphin's Ninja x64 Release preset...
+echo Requires MSVC C++ build tools, Windows SDK, CMake and Ninja.
+cmake --workflow --preset ninja-release-x64 >> "%LOG%" 2>&1
 if errorlevel 1 (
   echo BUILD FAILED. See build_fsr_edition.log for details.
   pause
