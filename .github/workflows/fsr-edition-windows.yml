@@ -46,3 +46,19 @@ jobs:
           path: build/release/x64/Binaries/**
           if-no-files-found: warn
           retention-days: 14
+
+  shader-syntax:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install GLSL validator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+      - name: Compile-check FSR shader sources
+        run: |
+          python3 tools/validate_fsr_shaders.py \
+            Data/Sys/Shaders/FSR1_EASU.glsl \
+            Data/Sys/Shaders/FSR_Spatial.glsl
