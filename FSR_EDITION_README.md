@@ -10,7 +10,9 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 
 - [x] Dedicated branch: `fsr3-frame-generation`.
 - [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl` (edge-aware sharpening prototype; not FSR).
-- [ ] Integrate the official AMD FidelityFX SDK 2.x path for FSR 2/3 where supported, or FSR 1 EASU/RCAS as a separately selectable spatial mode. The official SDK documents D3D12 and Vulkan support; evaluate its exact version, API and licensing before adding source.
+- [x] Add a shader-side adaptation of AMD FidelityFX FSR 1 EASU (`FSR1_EASU.glsl`) with AMD's copyright and license notice preserved.
+- [ ] Add the FSR 1 RCAS pass and validate EASU/RCAS output against AMD reference behavior.
+- [ ] Evaluate native FidelityFX SDK integration for future temporal FSR 2/3 and backend-level frame generation.
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
@@ -20,7 +22,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 
 ## Important technical distinction
 
-The included shader is an original, lightweight, edge-adaptive spatial reconstruction experiment. It is **not** AMD FidelityFX Super Resolution 1/2/3, does not use temporal accumulation, and does not generate intermediate frames. It is exposed through Dolphin's existing post-processing shader mechanism and is intended for visual evaluation only.
+`FSR1_EASU.glsl` adapts AMD's FSR 1 EASU spatial upscaling algorithm and preserves its permissive license notice. It is not the complete FidelityFX SDK integration and has not yet been compiled or visually validated in Dolphin. `FSR_Spatial.glsl` is a separate original sharpening experiment. Neither shader implements FSR 2/3 temporal accumulation or frame generation.
 
 FSR 2/3 temporal upscaling requires motion vectors, depth, jitter metadata and a history pipeline. A post-processing shader that only sees the final color image cannot reconstruct those inputs reliably.
 
@@ -51,7 +53,7 @@ The requested 5K/8K/above-8K output modes are experimental stress tests, not per
 
 ## Licensing
 
-Dolphin is GPL-2.0-or-later. This branch must preserve Dolphin's licensing and include the required license notices for any third-party FidelityFX code or SDK added later. The current shader is original experimental code and does not contain AMD SDK source.
+Dolphin is GPL-2.0-or-later. This branch must preserve Dolphin's licensing and include the required license notices for any third-party FidelityFX code or SDK added later. `FSR1_EASU.glsl` is an adaptation of AMD FSR 1 EASU source under the permissive license reproduced in that file. `FSR_Spatial.glsl` is original experimental code. The full AMD FidelityFX SDK has not been vendored into this branch.
 
 ## Experimental internal resolution above 8K
 
