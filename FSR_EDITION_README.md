@@ -14,7 +14,8 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
-- [ ] D3D12 and Vulkan validation.
+- [ ] D3D12 and Vulkan runtime validation.
+- [x] Add a CI GLSL syntax-check harness for both experimental shader files; CI result is still pending.
 - [ ] Windows build, packaging and runtime testing.
 
 ## Important technical distinction
