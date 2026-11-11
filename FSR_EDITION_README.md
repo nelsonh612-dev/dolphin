@@ -32,9 +32,9 @@ The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository 
 ## Try the current shader
 
 1. Build this branch using Dolphin's normal Windows build instructions.
-2. Copy `Data/Sys/Shaders/FSR_Spatial.glsl` into the build's system shader directory (or the user shader directory).
-3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR_Spatial`.
-4. Compare against post-processing off at the same internal and output resolutions.
+2. Copy `Data/Sys/Shaders/FSR1_EASU.glsl` and/or `Data/Sys/Shaders/FSR_Spatial.glsl` into the build's system shader directory (or the user shader directory).
+3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR1_EASU` to try the EASU upscaler, or `FSR_Spatial` for the adjustable sharpening experiment.
+4. Compare against post-processing off at the same internal and output resolutions. Treat EASU output as unvalidated until it has been compiled and tested in Dolphin.
 
 The shader is a prototype. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the file in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
 
