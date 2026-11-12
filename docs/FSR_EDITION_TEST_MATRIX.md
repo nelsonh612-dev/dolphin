@@ -72,3 +72,11 @@ Do not begin user-facing 2x frame-generation tests until all of these are availa
 - Correct frame pacing and latency measurements; generated FPS must not conceal a drop in real emulation speed.
 
 AMD's FSR 3.1.7 guidance recommends 60 FPS or higher input for optimal frame generation and notes that it can function at 30 FPS with potentially worse pacing/artifacts. The 60 FPS input gate is therefore the preferred target for the RTX 3060 laptop test plan.
+
+
+## FPS counter validation
+
+- [ ] Confirm Game FPS excludes duplicate Video Interface presentations.
+- [ ] Confirm Output FPS includes all presentation callbacks.
+- [ ] Verify pause/resume and state-load counter reset/invalidation behavior.
+- [ ] When frame generation is implemented, add a third counter at the generated-frame submission/presentation point; never derive it by multiplying Game FPS.
