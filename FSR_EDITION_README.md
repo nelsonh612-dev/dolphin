@@ -12,9 +12,10 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl` (edge-aware sharpening prototype; not FSR).
 - [x] Add a shader-side adaptation of AMD FidelityFX FSR 1 EASU (`FSR1_EASU.glsl`) with AMD's copyright and license notice preserved.
 - [x] Add a shader-side adaptation of AMD FSR 1 RCAS (`FSR1_RCAS.glsl`) with the AMD license notice preserved. It remains selectable by itself and is also used by the automatic EASU → RCAS two-pass path.
-- [x] Add a true two-pass EASU → RCAS path in the common post-processing pipeline. EASU renders to an intermediate texture and RCAS resolves that texture in a second pass; shader compile, stereo-layer handling, allocation fallback and runtime image quality still require validation.
+- [x] Add a true two-pass EASU → RCAS path in the common post-processing pipeline. EASU renders to an intermediate texture and RCAS resolves that texture in a second pass. The RCAS sharpness slider is available in Graphics > Enhancements when EASU is selected. Shader compile, stereo-layer handling, allocation fallback and runtime image quality still require validation.
 - [ ] Evaluate native FidelityFX SDK integration for future temporal FSR 2/3 and backend-level frame generation.
-- [ ] Add a dedicated FSR settings section with an exposed RCAS sharpness control and quality/performance presets. The two-pass chain currently uses the RCAS shader's default sharpness value.
+- [x] Expose RCAS sharpness (0–4 stops) in Graphics > Enhancements when `FSR1_EASU` is selected; the value is stored in Dolphin configuration and applied to the RCAS pass.
+- [ ] Add a dedicated FSR settings section with quality/performance presets and additional backend-specific controls.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
 - [ ] D3D12 and Vulkan runtime validation.
