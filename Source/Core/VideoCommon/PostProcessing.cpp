@@ -156,7 +156,7 @@ void PostProcessingConfiguration::LoadOptions(const std::string& code)
 
     if (!line.empty())
     {
-      if (line.starts_with("[/"))
+      if (line.size() >= 2 && line[0] == '[' && line[1] == '/')
       {
         // Closing configuration tags (for example [/OptionRangeFloat]) delimit
         // an option block; they are not option sections themselves. Treating
