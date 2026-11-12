@@ -854,9 +854,11 @@ void RunOnCPUThread(Core::System& system, Common::MoveOnlyFunction<void()> funct
 void Callback_FramePresented(const PresentInfo& present_info)
 {
   auto& perf_metrics = Core::System::GetInstance().GetPerfMetrics();
-  // This callback runs when a frame is submitted to the host presentation path.
-  // It measures output FPS, including any future interpolated frames.
+  // Count every submitted frame as output FPS. Exclude duplicate VI
+  // presentations from the unique VI rate.
   perf_metrics.CountFrame();
+  if (present_info.reason != PresentInfo::PresentReason::VideoInterfaceDuplicate)
+    perf_metrics.CountGameFrame();
 
   const auto presentation_offset =
       present_info.actual_present_time - present_info.intended_present_time;
@@ -874,10 +876,6 @@ void Callback_FramePresented(const PresentInfo& present_info)
 // Called from VideoInterface::Update (CPU thread) at emulated field boundaries.
 void Callback_NewField(Core::System& system)
 {
-  // Count the actual emulated VI field independently of presentation cadence.
-  // This is the game-side rate; it must not be inferred from output FPS.
-  system.GetPerfMetrics().CountGameFrame();
-
   if (s_frame_step)
   {
     // To ensure that s_stop_frame_step is up to date, wait for the GPU thread queue to empty,
