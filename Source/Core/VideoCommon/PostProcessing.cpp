@@ -499,9 +499,11 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
     if (m_fsr_rcas_pass)
     {
       const float sharpness_stops = Config::Get(Config::GFX_FSR1_RCAS_SHARPNESS);
-      const auto& rcas_sharpness =
-          m_fsr_rcas_pass->GetConfig()->GetOption("sharpness_stops").m_float_values;
-      if (rcas_sharpness.empty() || rcas_sharpness[0] != sharpness_stops)
+      auto& rcas_options = m_fsr_rcas_pass->GetConfig()->GetOptions();
+      const auto rcas_option = rcas_options.find("sharpness_stops");
+      if (rcas_option != rcas_options.end() &&
+          !rcas_option->second.m_float_values.empty() &&
+          rcas_option->second.m_float_values[0] != sharpness_stops)
       {
         m_fsr_rcas_pass->GetConfig()->SetOptionf("sharpness_stops", 0, sharpness_stops);
         m_fsr_rcas_pass->RecompileShader();
