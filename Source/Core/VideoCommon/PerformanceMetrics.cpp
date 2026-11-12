@@ -321,8 +321,10 @@ void PerformanceMetrics::DrawImGuiStats(const float backbuffer_scale)
         window_x -= ImGui::GetWindowWidth() + window_padding;
       clamp_window_position();
       if (g_ActiveConfig.bShowFPS)
-        ImGui::TextColored(ImVec4(r, g, b, 1.0f), "Game FPS:%7.2lf", game_fps);
+      {
+        ImGui::TextColored(ImVec4(r, g, b, 1.0f), "Emulated VI FPS:%7.2lf", game_fps);
         ImGui::TextColored(ImVec4(r, g, b, 1.0f), "Output FPS:%7.2lf", fps);
+      }
       if (g_ActiveConfig.bShowFTimes)
       {
         ImGui::TextColored(ImVec4(r, g, b, 1.0f), "dt:%6.2lfms",
