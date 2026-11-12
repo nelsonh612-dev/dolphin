@@ -1,7 +1,8 @@
 // AMD FidelityFX Super Resolution 1 - EASU shader adaptation for Dolphin
 //
-// Copyright (C) 2026 Advanced Micro Devices, Inc.
-// Adapted from AMD FidelityFX SDK: Kits/FidelityFX/upscalers/fsr3/include/gpu/fsr1/ffx_fsr1.h
+// Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.
+// Adapted from AMD FidelityFX FSR 1 reference source:
+// https://github.com/GPUOpen-Effects/FidelityFX-FSR/blob/master/ffx-fsr/ffx_fsr1.h
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
