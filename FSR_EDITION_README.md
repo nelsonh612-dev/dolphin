@@ -12,7 +12,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl` (edge-aware sharpening prototype; not FSR).
 - [x] Add a shader-side adaptation of AMD FidelityFX FSR 1 EASU (`FSR1_EASU.glsl`) with AMD's copyright and license notice preserved.
 - [x] Add a standalone shader-side adaptation of AMD FSR 1 RCAS (`FSR1_RCAS.glsl`) with the AMD license notice preserved. It is not yet chained automatically after EASU or visually validated.
-- [ ] Integrate EASU → RCAS as a true two-pass path and validate output against AMD reference behavior.
+- [x] Add a true two-pass EASU → RCAS path in the common post-processing pipeline. EASU renders to an intermediate texture and RCAS resolves that texture in a second pass; shader compile, stereo-layer handling, allocation fallback and runtime image quality still require validation.
 - [ ] Evaluate native FidelityFX SDK integration for future temporal FSR 2/3 and backend-level frame generation.
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
@@ -38,7 +38,7 @@ The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository 
 1. Build this branch using Dolphin's normal Windows build instructions.
 2. Copy `Data/Sys/Shaders/FSR1_EASU.glsl`, `Data/Sys/Shaders/FSR1_RCAS.glsl` and/or `Data/Sys/Shaders/FSR_Spatial.glsl` into the build's system shader directory (or the user shader directory).
 3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR1_EASU` to try the EASU prototype, `FSR1_RCAS` for the RCAS sharpening pass, or `FSR_Spatial` for the separate adjustable sharpening experiment.
-4. Compare against post-processing off at the same internal and output resolutions. EASU and RCAS are standalone selections at this stage: the current Dolphin UI does not chain RCAS after EASU automatically. Treat both as unvalidated until they are compiled and tested inside Dolphin.
+4. Select `FSR1_EASU` to activate the automatic EASU → RCAS two-pass chain. The pipeline renders EASU into an intermediate texture and applies RCAS before presentation. Select `FSR1_RCAS` only when you want the sharpening pass by itself. Compare against post-processing off at identical internal and output resolutions; treat the chain as experimental until a fresh build and D3D12/Vulkan runtime tests confirm image quality, stereo behavior and performance.
 
 The shaders are prototypes. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the files in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. These shaders are not standalone executables. A Windows build exists from the earlier branch revision, but the latest RCAS shader has not yet been confirmed in a fresh package or tested in Dolphin.
 
