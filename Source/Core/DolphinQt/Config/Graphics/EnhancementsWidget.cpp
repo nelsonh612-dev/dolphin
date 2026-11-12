@@ -382,6 +382,7 @@ void EnhancementsWidget::OnBackendChanged()
     LoadPostProcessingShaders();
   }
 
+  ShaderChanged();
   UpdateAntialiasingOptions();
 }
 
