@@ -61,3 +61,8 @@ Official integration references:
 ## EASU → RCAS two-pass integration
 
 The FSR Edition branch now chains the EASU selection through two separate post-processing processors and exposes the RCAS sharpness stops as a Dolphin graphics setting: the EASU stage renders into a size-matched intermediate texture, then a separately compiled RCAS processor samples that texture and writes to the original target. The chain preserves array layers for stereo and falls back to the ordinary EASU pass if intermediate allocation or RCAS initialization fails. This is code-path implementation only; D3D12/Vulkan runtime validation, stereo testing, image comparisons and performance measurements remain outstanding.
+
+
+## Frame-rate metric semantics
+
+The performance overlay now exposes two distinct measurements: Game FPS counts non-duplicate emulated VI/Immediate frames, while Output FPS counts all presentation callbacks, including duplicate presentations. This is groundwork only; generated FPS must be counted at the actual frame-interpolation submission/presentation point after a real FSR3 frame-generation integration exists. Do not label output FPS as generated FPS.
