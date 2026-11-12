@@ -156,6 +156,16 @@ void PostProcessingConfiguration::LoadOptions(const std::string& code)
 
     if (!line.empty())
     {
+      if (line.starts_with("[/"))
+      {
+        // Closing configuration tags (for example [/OptionRangeFloat]) delimit
+        // an option block; they are not option sections themselves. Treating
+        // them as sections creates an option with an empty name, which later
+        // emits an invalid uniform declaration such as "int ;" in the shader.
+        current_strings = nullptr;
+        continue;
+      }
+
       if (line[0] == '[')
       {
         size_t endpos = line.find("]");
