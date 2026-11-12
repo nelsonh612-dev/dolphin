@@ -11,13 +11,14 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [x] Dedicated branch: `fsr3-frame-generation`.
 - [x] First experimental spatial post-processing shader: `FSR_Spatial.glsl` (edge-aware sharpening prototype; not FSR).
 - [x] Add a shader-side adaptation of AMD FidelityFX FSR 1 EASU (`FSR1_EASU.glsl`) with AMD's copyright and license notice preserved.
-- [ ] Add the FSR 1 RCAS pass and validate EASU/RCAS output against AMD reference behavior.
+- [x] Add a standalone shader-side adaptation of AMD FSR 1 RCAS (`FSR1_RCAS.glsl`) with the AMD license notice preserved. It is not yet chained automatically after EASU or visually validated.
+- [ ] Integrate EASU → RCAS as a true two-pass path and validate output against AMD reference behavior.
 - [ ] Evaluate native FidelityFX SDK integration for future temporal FSR 2/3 and backend-level frame generation.
 - [ ] Add a dedicated Dolphin settings page and quality/performance presets.
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
 - [ ] D3D12 and Vulkan runtime validation.
-- [x] Add a CI GLSL syntax-check harness for both experimental shader files; CI result is still pending.
+- [x] Add a CI GLSL syntax-check harness for EASU, RCAS and the separate sharpening experiment. The validator wrapper now exposes Dolphin's `SampleLocation` helper; the new RCAS check is pending a fresh CI run.
 - [ ] Windows build, packaging and runtime testing.
 
 ## Important technical distinction
@@ -35,11 +36,11 @@ The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository 
 ## Try the current shader
 
 1. Build this branch using Dolphin's normal Windows build instructions.
-2. Copy `Data/Sys/Shaders/FSR1_EASU.glsl` and/or `Data/Sys/Shaders/FSR_Spatial.glsl` into the build's system shader directory (or the user shader directory).
-3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR1_EASU` to try the EASU upscaler, or `FSR_Spatial` for the adjustable sharpening experiment.
-4. Compare against post-processing off at the same internal and output resolutions. Treat EASU output as unvalidated until it has been compiled and tested in Dolphin.
+2. Copy `Data/Sys/Shaders/FSR1_EASU.glsl`, `Data/Sys/Shaders/FSR1_RCAS.glsl` and/or `Data/Sys/Shaders/FSR_Spatial.glsl` into the build's system shader directory (or the user shader directory).
+3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR1_EASU` to try the EASU prototype, `FSR1_RCAS` for the RCAS sharpening pass, or `FSR_Spatial` for the separate adjustable sharpening experiment.
+4. Compare against post-processing off at the same internal and output resolutions. EASU and RCAS are standalone selections at this stage: the current Dolphin UI does not chain RCAS after EASU automatically. Treat both as unvalidated until they are compiled and tested inside Dolphin.
 
-The shader is a prototype. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the file in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
+The shaders are prototypes. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the files in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
 
 ## Safe performance baseline for the target laptop
 
@@ -53,7 +54,7 @@ The requested 5K/8K/above-8K output modes are experimental stress tests, not per
 
 ## Licensing
 
-Dolphin is GPL-2.0-or-later. This branch must preserve Dolphin's licensing and include the required license notices for any third-party FidelityFX code or SDK added later. `FSR1_EASU.glsl` is an adaptation of AMD FSR 1 EASU source under the permissive license reproduced in that file. `FSR_Spatial.glsl` is original experimental code. The full AMD FidelityFX SDK has not been vendored into this branch.
+Dolphin is GPL-2.0-or-later. This branch must preserve Dolphin's licensing and include the required license notices for any third-party FidelityFX code or SDK added later. `FSR1_EASU.glsl` and `FSR1_RCAS.glsl` are shader-side adaptations of AMD FSR 1 source under the permissive license reproduced in each file. `FSR_Spatial.glsl` is original experimental code. The full AMD FidelityFX SDK has not been vendored into this branch.
 
 ## Experimental internal resolution above 8K
 
