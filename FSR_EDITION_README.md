@@ -66,4 +66,4 @@ This branch raises the selectable maximum EFB/internal scale to 16x and labels t
 
 ### FPS counters
 
-The performance overlay now reports **Emulated VI FPS** (non-duplicate emulated frames) separately from **Output FPS** (frames passed through Dolphin's presentation callback). This establishes the distinction needed for frame generation. A separate generated-frame counter is not available until generated frames are actually implemented and submitted through a dedicated presentation path.
+The performance overlay now reports **Unique VI FPS** (non-duplicate emulated frames) separately from **Output FPS** (frames passed through Dolphin's presentation callback). This establishes the distinction needed for frame generation. A separate generated-frame counter is not available until generated frames are actually implemented and submitted through a dedicated presentation path.
