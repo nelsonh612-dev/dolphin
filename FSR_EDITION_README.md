@@ -19,7 +19,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
 - [ ] D3D12 and Vulkan runtime validation.
 - [x] Add a CI GLSL syntax-check harness for EASU, RCAS and the separate sharpening experiment. The validator wrapper now exposes Dolphin's `SampleLocation` helper; the new RCAS check is pending a fresh CI run.
-- [ ] Windows build, packaging and runtime testing.
+- [x] Windows x64 build and package generation succeeded in GitHub Actions for commit `c3d03f5` (before the RCAS-only additions). A fresh build for the current branch head and in-emulator runtime testing remain pending.
 
 ## Important technical distinction
 
@@ -31,7 +31,7 @@ Frame generation is a separate subsystem. Even a successful 2x frame-generation 
 
 ## Build on Windows x64
 
-The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root in an **x64 Native Tools Command Prompt for Visual Studio** on Windows, with Git for Windows, MSVC C++ build tools, the Windows SDK, CMake and Ninja installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. This script has not been executed in the current environment; a successful build is not yet verified.
+The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root in an **x64 Native Tools Command Prompt for Visual Studio** on Windows, with Git for Windows, MSVC C++ build tools, the Windows SDK, CMake and Ninja installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. The helper script has not been run locally on the target laptop. GitHub Actions did successfully compile and package the Windows x64 build for commit `c3d03f5`; the current RCAS additions still need a fresh build run.
 
 ## Try the current shader
 
@@ -40,7 +40,7 @@ The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository 
 3. Open Graphics > Enhancements > Post-Processing Effect and select `FSR1_EASU` to try the EASU prototype, `FSR1_RCAS` for the RCAS sharpening pass, or `FSR_Spatial` for the separate adjustable sharpening experiment.
 4. Compare against post-processing off at the same internal and output resolutions. EASU and RCAS are standalone selections at this stage: the current Dolphin UI does not chain RCAS after EASU automatically. Treat both as unvalidated until they are compiled and tested inside Dolphin.
 
-The shaders are prototypes. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the files in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. It is not a standalone executable and has not yet been built or tested in Dolphin in this development environment.
+The shaders are prototypes. The post-processing loader discovers `.glsl` files from Dolphin's shader directories; place the files in the actual system shader directory used by the build (`Data/Sys/Shaders` in the source tree or the equivalent installed `Sys/Shaders` directory). If it is not listed, check the Dolphin log for shader discovery or compilation errors. These shaders are not standalone executables. A Windows build exists from the earlier branch revision, but the latest RCAS shader has not yet been confirmed in a fresh package or tested in Dolphin.
 
 ## Safe performance baseline for the target laptop
 
