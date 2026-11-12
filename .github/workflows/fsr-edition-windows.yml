@@ -20,6 +20,7 @@ jobs:
       - name: Check out source and submodules
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           submodules: recursive
 
       - name: Set up MSVC x64 environment
