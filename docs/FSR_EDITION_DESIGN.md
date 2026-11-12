@@ -65,4 +65,4 @@ The FSR Edition branch now chains the EASU selection through two separate post-p
 
 ## Frame-rate metric semantics
 
-The performance overlay now exposes two distinct measurements: Game FPS counts non-duplicate emulated VI/Immediate frames, while Output FPS counts all presentation callbacks, including duplicate presentations. This is groundwork only; generated FPS must be counted at the actual frame-interpolation submission/presentation point after a real FSR3 frame-generation integration exists. Do not label output FPS as generated FPS.
+The performance overlay now exposes two distinct measurements: Emulated VI FPS counts non-duplicate emulated VI/Immediate frames, while Output FPS counts all presentation callbacks, including duplicate presentations. This is groundwork only; generated FPS must be counted at the actual frame-interpolation submission/presentation point after a real FSR3 frame-generation integration exists. Do not label output FPS as generated FPS.
