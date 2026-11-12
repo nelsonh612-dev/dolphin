@@ -491,7 +491,7 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
     if (!m_fsr_rcas_pass)
     {
       m_fsr_rcas_pass = std::make_unique<PostProcessing>();
-      m_fsr_rcas_pass->GetConfig()->LoadShader("FSR1_RCAS");
+      m_fsr_rcas_pass->SetShaderOverride("FSR1_RCAS");
       if (!m_fsr_rcas_pass->Initialize(m_framebuffer_format))
         m_fsr_rcas_pass.reset();
     }
@@ -1063,7 +1063,8 @@ bool PostProcessing::CompilePixelShader()
     m_default_uniform_staging_buffer.resize(0);
   }
 
-  m_config.LoadShader(g_ActiveConfig.sPostProcessingShader);
+  m_config.LoadShader(m_shader_override.empty() ? g_ActiveConfig.sPostProcessingShader :
+                                                        m_shader_override);
   m_pixel_shader = g_gfx->CreateShaderFromSource(
       ShaderStage::Pixel, GetHeader(true) + m_config.GetShaderCode() + GetFooter(),
       m_config.GetShaderIncluder(),
