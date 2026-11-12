@@ -149,6 +149,7 @@ protected:
   std::unique_ptr<AbstractFramebuffer> m_fsr_intermediary_framebuffer;
   std::unique_ptr<AbstractTexture> m_fsr_intermediary_texture;
   bool m_bypass_fsr_chain = false;
+  AbstractTextureFormat m_fsr_rcas_failed_format = AbstractTextureFormat::Undefined;
 
   std::vector<u8> m_default_uniform_staging_buffer;
   // User post process:
