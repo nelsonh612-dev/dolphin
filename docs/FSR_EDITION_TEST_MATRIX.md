@@ -85,3 +85,9 @@ AMD's FSR 3.1.7 guidance recommends 60 FPS or higher input for optimal frame gen
 - [ ] Confirm Output FPS includes all presentation callbacks.
 - [ ] Verify pause/resume and state-load counter reset/invalidation behavior.
 - [ ] When frame generation is implemented, add a third counter at the generated-frame submission/presentation point; never derive it by multiplying Unique VI FPS.
+
+## HDR RCAS regression check
+
+- RCAS output must preserve positive values above 1.0 when the active render target is HDR/RGBA16F; do not clamp the result to the SDR [0, 1] range.
+- Compare bright emissive/highlight regions with RCAS off and on, and confirm that negative values are prevented without flattening HDR highlights.
+- This is a source-level correction only until the shader validator and D3D12/Vulkan runtime tests pass on the current branch head.
