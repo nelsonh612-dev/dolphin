@@ -29,6 +29,7 @@ layout(std140, set = 0, binding = 2) uniform PSBlock
 layout(location = 0) in vec3 v_tex0;
 layout(location = 0) out vec4 ocol0;
 
+vec4 SampleLocation(vec2 location) { return texture(samp0, vec3(location, v_tex0.z)); }
 vec2 GetResolution() { return resolution.xy; }
 vec2 GetInvResolution() { return resolution.zw; }
 vec2 GetTargetResolution() { return target_resolution.xy; }
