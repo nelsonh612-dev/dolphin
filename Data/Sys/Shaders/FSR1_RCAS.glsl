@@ -114,7 +114,10 @@ vec4 FSR1Rcas(vec2 uv)
   float resolve = 1.0 / max(4.0 * lobe + 1.0, 1.0e-6);
   vec3 result = (lobe * (b + d + f + h) + e) * resolve;
 
-  return vec4(clamp(result, vec3(0.0), vec3(1.0)), center.a);
+  // Preserve values above 1.0 for HDR render targets (notably RGBA16F).
+  // The RCAS lobe limiter controls neighborhood overshoot; only prevent
+  // negative light values instead of clipping the HDR highlight range.
+  return vec4(max(result, vec3(0.0)), center.a);
 }
 
 void main()
