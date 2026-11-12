@@ -76,7 +76,7 @@ AMD's FSR 3.1.7 guidance recommends 60 FPS or higher input for optimal frame gen
 
 ## FPS counter validation
 
-- [ ] Confirm Emulated VI FPS excludes duplicate Video Interface presentations.
+- [ ] Confirm Unique VI FPS excludes duplicate Video Interface presentations.
 - [ ] Confirm Output FPS includes all presentation callbacks.
 - [ ] Verify pause/resume and state-load counter reset/invalidation behavior.
-- [ ] When frame generation is implemented, add a third counter at the generated-frame submission/presentation point; never derive it by multiplying Emulated VI FPS.
+- [ ] When frame generation is implemented, add a third counter at the generated-frame submission/presentation point; never derive it by multiplying Unique VI FPS.
