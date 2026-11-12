@@ -36,7 +36,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.dolphinemu.dolphinemu"
+        // Orca Lite uses its own application ID so it installs alongside official Dolphin.
+        // The Kotlin/JNI namespace stays org.dolphinemu.dolphinemu to keep upstream merges simple.
+        applicationId = "io.github.nelsonh612.orcalite"
         minSdk = 24
         targetSdk = 37
 
@@ -69,7 +71,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
 
-            resValue("string", "app_name_suffixed", "Dolphin Emulator")
+            resValue("string", "app_name_suffixed", "Orca Lite")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -81,7 +83,7 @@ android {
         // Signed by debug key disallowing distribution on Play Store.
         // Attaches "debug" suffix to version and package name, allowing installation alongside the release build.
         debug {
-            resValue("string", "app_name_suffixed", "Dolphin Debug")
+            resValue("string", "app_name_suffixed", "Orca Lite Debug")
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isJniDebuggable = true
@@ -100,7 +102,12 @@ android {
         ndk {
             // We only officially support arm64-v8a and x86_64.
             // If you want to try building other ABIs anyway, you need -DENABLE_GENERIC=ON.
-            abiFilters += listOf("arm64-v8a", "x86_64") //, "armeabi-v7a", "x86"
+            // Orca Lite: CI can pass -PorcaAbis=arm64-v8a to build only for phones.
+            val orcaAbis = project.findProperty("orcaAbis")?.toString()
+            if (orcaAbis != null)
+                abiFilters += orcaAbis.split(",").map { it.trim() }
+            else
+                abiFilters += listOf("arm64-v8a", "x86_64") //, "armeabi-v7a", "x86"
         }
 
         externalNativeBuild {
