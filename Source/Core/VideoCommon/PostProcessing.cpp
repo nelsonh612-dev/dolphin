@@ -510,12 +510,18 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
       }
 
       const bool copy_all_fsr_layers = src_layer < 0;
-      const u32 fsr_target_layers = copy_all_fsr_layers ? src_tex->GetLayers() : 1;
-      const u32 fsr_target_width = static_cast<u32>(dst.GetWidth());
-      const u32 fsr_target_height = static_cast<u32>(dst.GetHeight());
+      const int fsr_target_width_signed = dst.GetWidth();
+      const int fsr_target_height_signed = dst.GetHeight();
 
-      if (fsr_target_width > 0 && fsr_target_height > 0)
+      // Validate the signed rectangle dimensions before converting them to u32.
+      // A negative rectangle width/height would otherwise wrap to a huge texture
+      // allocation request and could make the backend fail or exhaust GPU memory.
+      if (fsr_target_width_signed > 0 && fsr_target_height_signed > 0 &&
+          src_tex->GetLayers() > 0)
       {
+        const u32 fsr_target_layers = copy_all_fsr_layers ? src_tex->GetLayers() : 1;
+        const u32 fsr_target_width = static_cast<u32>(fsr_target_width_signed);
+        const u32 fsr_target_height = static_cast<u32>(fsr_target_height_signed);
         if (!m_fsr_intermediary_framebuffer || !m_fsr_intermediary_texture ||
             m_fsr_intermediary_texture->GetWidth() != fsr_target_width ||
             m_fsr_intermediary_texture->GetHeight() != fsr_target_height ||
