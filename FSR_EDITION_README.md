@@ -25,7 +25,7 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 
 `FSR1_EASU.glsl` adapts AMD's FSR 1 EASU spatial upscaling algorithm and preserves its permissive license notice. It is not the complete FidelityFX SDK integration and has not yet been compiled or visually validated in Dolphin. `FSR_Spatial.glsl` is a separate original sharpening experiment. Neither shader implements FSR 2/3 temporal accumulation or frame generation.
 
-FSR 2/3 temporal upscaling requires motion vectors, depth, jitter metadata and a history pipeline. A post-processing shader that only sees the final color image cannot reconstruct those inputs reliably.
+FSR 2/3 temporal upscaling requires motion vectors, depth, jitter metadata and a history pipeline. A post-processing shader that only sees the final color image cannot reconstruct those inputs reliably. FSR 3 frame generation additionally requires a supported swapchain/presentation integration and an explicit UI-composition strategy; Dolphin's current composed final-color path does not yet provide the required per-pixel data or separate UI layer. AMD recommends a stable 60 FPS or higher input for optimal FSR 3.1.7 frame generation (30 FPS is a lower-bound experiment, not the preferred target).
 
 Frame generation is a separate subsystem. Even a successful 2x frame-generation path does not increase emulated CPU/game logic speed: 30 real emulation FPS plus generated intermediate images may display 60 images per second while the game simulation still advances at 30 FPS. Input latency and artifacts must be measured.
 
