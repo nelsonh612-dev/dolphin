@@ -18,6 +18,10 @@ Use this sheet after building the branch. Do not compare different games or scen
 | B | Vulkan | 2x | 1080p | Off | | | | | | |
 | C | D3D12 | 2x | 1080p | Edge sharpen prototype | | | | | | |
 | D | Vulkan | 2x | 1080p | Edge sharpen prototype | | | | | | |
+| G | D3D12 | 2x | 1080p | FSR1_RCAS (stops 1.0) | | | | | | |
+| H | Vulkan | 2x | 1080p | FSR1_RCAS (stops 1.0) | | | | | | |
+| I | D3D12 | 2x | 1080p | FSR1_EASU | | | | | | |
+| J | Vulkan | 2x | 1080p | FSR1_EASU | | | | | | |
 | E | D3D12 | 3x | 1080p | Off | | | | | | |
 | F | Vulkan | 3x | 1080p | Off | | | | | | |
 
@@ -47,3 +51,12 @@ Record both real emulation FPS and displayed FPS. Compare latency and visual art
 ## Resolution stress testing
 
 Try output resolutions above the physical 1080p panel only as controlled stress tests. Keep output size separate from EFB/internal resolution. Increase internal scale one step at a time while monitoring VRAM and frame time; do not force extreme allocations by default.
+
+
+## RCAS-specific checks
+
+- Compare RCAS off and on at identical output resolution; do not compare the standalone RCAS shader to EASU as if they were the same operation.
+- Test sharpness stops 0, 1, 2 and 4; inspect halos, ringing, noise amplification and clipped highlights/shadows.
+- Check image borders and all four corners for sampling seams.
+- Verify alpha/UI edges remain intact and the filter does not change the output dimensions.
+- RCAS is currently standalone; do not record an EASU+RCAS combined result until a true two-pass pipeline exists.
