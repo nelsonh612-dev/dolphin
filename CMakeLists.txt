@@ -107,6 +107,11 @@ option(ENABLE_NOGUI "Enable NoGUI frontend" OFF)
 option(ENABLE_QT "Enable Qt (Default)" ON)
 option(ENABLE_LTO "Enables Link Time Optimization" OFF)
 option(ENABLE_GENERIC "Enables generic build that should run on any little-endian host" OFF)
+# Orca Lite: 32-bit ARM (armeabi-v7a) has no JIT backend, so build it as a
+# generic (JIT-less) binary for low-end phones that ship a 32-bit Android.
+if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
+  set(ENABLE_GENERIC ON)
+endif()
 option(ENABLE_HEADLESS "Enables running Dolphin as a headless variant" OFF)
 option(ENABLE_ALSA "Enables ALSA sound backend" ON)
 option(ENABLE_PULSEAUDIO "Enables PulseAudio sound backend" ON)

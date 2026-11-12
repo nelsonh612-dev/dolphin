@@ -13,7 +13,13 @@ permissions:
 
 jobs:
   build-apk:
+    name: build-apk (${{ matrix.abi }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # armeabi-v7a is an experimental JIT-less build for phones with 32-bit Android.
+        abi: [arm64-v8a, armeabi-v7a]
     timeout-minutes: 120
     env:
       NDK_VERSION: "30.0.15729638"
@@ -51,14 +57,14 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('Source/Android/**/*.gradle.kts', 'Source/Android/gradle/**') }}
 
-      - name: Build debug APK (arm64)
+      - name: Build debug APK (${{ matrix.abi }})
         working-directory: Source/Android
-        run: ./gradlew --no-daemon assembleDebug -PorcaAbis=arm64-v8a
+        run: ./gradlew --no-daemon assembleDebug -PorcaAbis=${{ matrix.abi }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: orca-lite-debug-arm64
+          name: orca-lite-debug-${{ matrix.abi }}
           path: Source/Android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
