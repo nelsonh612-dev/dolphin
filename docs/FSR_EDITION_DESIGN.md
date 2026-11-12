@@ -44,3 +44,15 @@ The branch now contains `Data/Sys/Shaders/FSR1_RCAS.glsl`, a shader-side adaptat
 Important pipeline limitation: AMD specifies RCAS as a separate pass after EASU. Dolphin's existing user post-processing selector currently selects one shader, not an ordered chain of arbitrary user shaders. Therefore the new RCAS file is selectable by itself and is not yet an integrated EASU→RCAS pipeline. A future integration must add an explicit intermediate target and run EASU then RCAS without breaking stereo, color correction, HDR, or backend synchronization.
 
 The CI shader harness was extended to include RCAS and to provide Dolphin's `SampleLocation` helper to the shader source. The first CI run previously passed the Windows build but failed its shader harness because that helper was absent from the test wrapper; the wrapper fix and RCAS check are now committed, pending a fresh workflow result.
+
+## Frame-generation feasibility update (AMD FSR 3.1.x)
+
+AMD's current integration guidance makes clear that FSR 3 frame generation is not a final-image shader. It uses an SDK frame-generation context plus a swapchain integration; D3D12 and Vulkan each require the appropriate swapchain/presentation integration. The integration also requires an explicit UI composition strategy. The official options include a separate UI render target, a callback that re-renders UI over generated frames, or a HUD-less/UI comparison path.
+
+Dolphin's current final presentation path receives a composed color texture. This branch has not yet demonstrated reliable per-pixel motion vectors, depth, jitter, or a UI-only layer for arbitrary GameCube/Wii titles. Therefore the current post-process path cannot be promoted to FSR 3 frame generation by simply loading the SDK DLL. The engineering work must first identify where to obtain or reconstruct those inputs and how to preserve game UI, stereo layers, pause/menu transitions, and backend synchronization.
+
+AMD states that FSR 3.1.7 frame generation works without a special GPU-generation requirement, so an NVIDIA RTX 3060 is not automatically excluded by that requirement. However, AMD recommends 60 FPS or higher input for optimal results; it can function from 30 FPS, but frame pacing and artifacts can be worse. This is especially important for the target: frame generation should only be evaluated after the emulator can sustain a stable real 60 FPS in the test scene. Generated presentation FPS must never be reported as real emulation speed.
+
+Official integration references:
+- https://gpuopen.com/fidelityfx-super-resolution-3/
+- https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/blob/main/Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md
