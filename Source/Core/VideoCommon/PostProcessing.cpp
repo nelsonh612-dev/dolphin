@@ -11,6 +11,8 @@
 
 #include "Common/Assert.h"
 #include "Common/CommonPaths.h"
+#include "Common/Config/Config.h"
+#include "Core/Config/GraphicsSettings.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileSearch.h"
 #include "Common/FileUtil.h"
@@ -496,6 +498,15 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
 
     if (m_fsr_rcas_pass)
     {
+      const float sharpness_stops = Config::Get(Config::GFX_FSR1_RCAS_SHARPNESS);
+      const auto& rcas_sharpness =
+          m_fsr_rcas_pass->GetConfig()->GetOption("sharpness_stops").m_float_values;
+      if (rcas_sharpness.empty() || rcas_sharpness[0] != sharpness_stops)
+      {
+        m_fsr_rcas_pass->GetConfig()->SetOptionf("sharpness_stops", 0, sharpness_stops);
+        m_fsr_rcas_pass->RecompileShader();
+      }
+
       const bool copy_all_fsr_layers = src_layer < 0;
       const u32 fsr_target_layers = copy_all_fsr_layers ? src_tex->GetLayers() : 1;
       const u32 fsr_target_width = static_cast<u32>(dst.GetWidth());
