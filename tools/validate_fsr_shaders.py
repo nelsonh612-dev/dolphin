@@ -24,6 +24,7 @@ layout(std140, set = 0, binding = 2) uniform PSBlock
   vec4 target_resolution;
   vec4 src_rect;
   float sharpness;
+  float sharpness_stops;
 };
 
 layout(location = 0) in vec3 v_tex0;
