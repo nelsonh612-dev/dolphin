@@ -1088,19 +1088,31 @@ bool PostProcessing::CompilePixelShader()
       fmt::format("User post-processing pixel shader: {}", m_config.GetShader()));
   if (!m_pixel_shader)
   {
-    // Internal post-processing stages are optional. In particular, RCAS must not
-    // interrupt game startup with a modal dialog if a backend rejects its shader.
-    // The owning EASU pass will fall back to EASU-only when initialization fails.
+    const std::string failed_shader = m_config.GetShader();
+
+    // Internal stages and the experimental FSR shaders are optional. A backend
+    // rejecting one of them must not interrupt game startup with a modal dialog.
+    // An internal RCAS stage is disabled; a user-selected FSR shader falls back
+    // to Dolphin's default post-processing shader.
     if (!m_shader_override.empty())
     {
       ERROR_LOG_FMT(VIDEO, "Failed to compile internal post-processing shader {}; disabling "
                            "the optional pass",
-                    m_config.GetShader());
+                    failed_shader);
       m_uniform_staging_buffer.resize(0);
       return false;
     }
 
-    PanicAlertFmt("Failed to compile user post-processing shader {}", m_config.GetShader());
+    if (failed_shader == "FSR1_EASU" || failed_shader == "FSR1_RCAS")
+    {
+      ERROR_LOG_FMT(VIDEO, "Failed to compile optional FSR post-processing shader {}; falling "
+                           "back to the default shader",
+                    failed_shader);
+    }
+    else
+    {
+      PanicAlertFmt("Failed to compile user post-processing shader {}", failed_shader);
+    }
 
     // Use default shader.
     m_config.LoadDefaultShader();
