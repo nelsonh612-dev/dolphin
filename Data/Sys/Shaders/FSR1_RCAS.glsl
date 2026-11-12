@@ -24,8 +24,8 @@
 //
 // Shader-side adaptation of AMD's spatial RCAS filter. RCAS does not upscale;
 // it is intended to run on an already-upscaled image after EASU. Dolphin's
-// current post-processing selector runs one shader, so this file is exposed
-// as a standalone sharpening option and is not automatically chained after EASU.
+// FSR Edition chains this shader as a separate second pass when FSR1_EASU is selected.
+// It remains independently selectable for sharpening-only comparisons.
 
 /*
 [configuration]
