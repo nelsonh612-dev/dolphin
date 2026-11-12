@@ -106,7 +106,7 @@ public:
   PostProcessingConfiguration* GetConfig() { return &m_config; }
 
   bool Initialize(AbstractTextureFormat format);
-  void SetShaderOverride(std::string shader) { m_shader_override = std::move(shader); }
+  void SetShaderOverride(const std::string& shader) { m_shader_override = shader; }
 
   void RecompileShader();
   void RecompilePipeline();
