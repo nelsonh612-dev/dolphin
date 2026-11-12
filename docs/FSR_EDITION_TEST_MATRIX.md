@@ -60,3 +60,15 @@ Try output resolutions above the physical 1080p panel only as controlled stress 
 - Check image borders and all four corners for sampling seams.
 - Verify alpha/UI edges remain intact and the filter does not change the output dimensions.
 - RCAS is currently standalone; do not record an EASU+RCAS combined result until a true two-pass pipeline exists.
+
+## Frame-generation readiness gates
+
+Do not begin user-facing 2x frame-generation tests until all of these are available:
+- Stable real emulation speed of at least 60 FPS in the target scene for the preferred FSR 3.1.x quality target; also document behavior at 30 FPS as a lower-bound experiment.
+- Correct render-resolution motion vectors and depth with documented formats, scale, jitter convention and camera-cut handling.
+- A way to separate or correctly recompose the game's UI/HUD on generated frames.
+- D3D12 and Vulkan swapchain lifecycle integration, including resize, fullscreen/windowed transitions, device loss and shutdown.
+- Separate counters for emulated real frames, generated frames and presented frames.
+- Correct frame pacing and latency measurements; generated FPS must not conceal a drop in real emulation speed.
+
+AMD's FSR 3.1.7 guidance recommends 60 FPS or higher input for optimal frame generation and notes that it can function at 30 FPS with potentially worse pacing/artifacts. The 60 FPS input gate is therefore the preferred target for the RTX 3060 laptop test plan.
