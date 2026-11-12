@@ -141,6 +141,14 @@ protected:
   std::unique_ptr<AbstractPipeline> m_default_pipeline;
   std::unique_ptr<AbstractFramebuffer> m_intermediary_frame_buffer;
   std::unique_ptr<AbstractTexture> m_intermediary_color_texture;
+
+  // FSR1 EASU -> RCAS two-pass resources. The RCAS processor owns its own shader,
+  // uniforms, and pipeline so the two stages remain independently compiled.
+  std::unique_ptr<PostProcessing> m_fsr_rcas_pass;
+  std::unique_ptr<AbstractFramebuffer> m_fsr_intermediary_framebuffer;
+  std::unique_ptr<AbstractTexture> m_fsr_intermediary_texture;
+  bool m_bypass_fsr_chain = false;
+
   std::vector<u8> m_default_uniform_staging_buffer;
   // User post process:
   PostProcessingConfiguration m_config;
