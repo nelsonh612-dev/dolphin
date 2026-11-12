@@ -106,6 +106,7 @@ public:
   PostProcessingConfiguration* GetConfig() { return &m_config; }
 
   bool Initialize(AbstractTextureFormat format);
+  void SetShaderOverride(std::string shader) { m_shader_override = std::move(shader); }
 
   void RecompileShader();
   void RecompilePipeline();
@@ -152,6 +153,9 @@ protected:
   std::vector<u8> m_default_uniform_staging_buffer;
   // User post process:
   PostProcessingConfiguration m_config;
+  // Optional fixed shader used by internal post-processing stages such as RCAS.
+  // It must survive shader recompilation instead of following the global UI selection.
+  std::string m_shader_override;
   std::unique_ptr<AbstractShader> m_vertex_shader;
   std::unique_ptr<AbstractShader> m_pixel_shader;
   std::unique_ptr<AbstractPipeline> m_pipeline;
