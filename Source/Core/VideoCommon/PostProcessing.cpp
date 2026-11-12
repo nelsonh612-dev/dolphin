@@ -421,6 +421,10 @@ std::vector<std::string> PostProcessing::GetPassiveShaderList()
 bool PostProcessing::Initialize(AbstractTextureFormat format)
 {
   m_framebuffer_format = format;
+  // A new parent initialization means the graphics device/resources may have been
+  // recreated, so allow the optional RCAS stage to be attempted again.
+  if (m_shader_override.empty())
+    m_fsr_rcas_failed_format = AbstractTextureFormat::Undefined;
   // CompilePixelShader() must be run first if configuration options are used.
   // Otherwise the UBO has a different member list between vertex and pixel
   // shaders, which is a link error on some backends.
@@ -488,12 +492,23 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
   // without recursively entering this chain.
   if (!m_bypass_fsr_chain && m_config.GetShader() == "FSR1_EASU")
   {
-    if (!m_fsr_rcas_pass)
+    if (!m_fsr_rcas_pass && m_fsr_rcas_failed_format != m_framebuffer_format)
     {
-      m_fsr_rcas_pass = std::make_unique<PostProcessing>();
-      m_fsr_rcas_pass->SetShaderOverride("FSR1_RCAS");
-      if (!m_fsr_rcas_pass->Initialize(m_framebuffer_format))
-        m_fsr_rcas_pass.reset();
+      auto rcas_pass = std::make_unique<PostProcessing>();
+      rcas_pass->SetShaderOverride("FSR1_RCAS");
+      if (rcas_pass->Initialize(m_framebuffer_format))
+      {
+        m_fsr_rcas_pass = std::move(rcas_pass);
+      }
+      else
+      {
+        // Do not retry shader/pipeline creation every rendered frame. Retry only
+        // after the parent is initialized again or the framebuffer format changes.
+        m_fsr_rcas_failed_format = m_framebuffer_format;
+        ERROR_LOG_FMT(VIDEO, "FSR1 RCAS initialization failed for framebuffer format {}; "
+                             "continuing with EASU only",
+                      static_cast<int>(m_framebuffer_format));
+      }
     }
 
     if (m_fsr_rcas_pass)
@@ -505,8 +520,9 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
           !rcas_option->second.m_float_values.empty() &&
           rcas_option->second.m_float_values[0] != sharpness_stops)
       {
+        // RCAS reads this value from its uniform buffer; changing it does not
+        // require recompiling the shader or rebuilding its pipeline.
         m_fsr_rcas_pass->GetConfig()->SetOptionf("sharpness_stops", 0, sharpness_stops);
-        m_fsr_rcas_pass->RecompileShader();
       }
 
       const bool copy_all_fsr_layers = src_layer < 0;
@@ -1071,6 +1087,18 @@ bool PostProcessing::CompilePixelShader()
       fmt::format("User post-processing pixel shader: {}", m_config.GetShader()));
   if (!m_pixel_shader)
   {
+    // Internal post-processing stages are optional. In particular, RCAS must not
+    // interrupt game startup with a modal dialog if a backend rejects its shader.
+    // The owning EASU pass will fall back to EASU-only when initialization fails.
+    if (!m_shader_override.empty())
+    {
+      ERROR_LOG_FMT(VIDEO, "Failed to compile internal post-processing shader {}; disabling "
+                           "the optional pass",
+                    m_config.GetShader());
+      m_uniform_staging_buffer.resize(0);
+      return false;
+    }
+
     PanicAlertFmt("Failed to compile user post-processing shader {}", m_config.GetShader());
 
     // Use default shader.
