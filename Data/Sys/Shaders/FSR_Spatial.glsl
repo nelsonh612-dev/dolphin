@@ -18,7 +18,6 @@ MinValue = 0.0
 MaxValue = 1.0
 DefaultValue = 0.35
 StepAmount = 0.05
-[/OptionRangeFloat]
 [/configuration]
 */
 

@@ -263,6 +263,17 @@ void PostProcessingConfiguration::LoadOptions(const std::string& code)
         }
       }
     }
+    // An option without a valid section type or OptionName would be emitted as an
+    // invalid uniform declaration (for example "int ;"), breaking the whole shader.
+    const bool known_type = it.m_type == "OptionBool" || it.m_type == "OptionRangeFloat" ||
+                            it.m_type == "OptionRangeInteger";
+    if (!known_type || option.m_option_name.empty())
+    {
+      WARN_LOG_FMT(VIDEO, "Ignoring post-processing option section [{}] with name '{}'",
+                   it.m_type, option.m_option_name);
+      continue;
+    }
+
     m_options[option.m_option_name] = option;
   }
 }
