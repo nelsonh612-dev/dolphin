@@ -514,10 +514,12 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
               AbstractTextureFlag_RenderTarget, AbstractTextureType::Texture_2DArray);
           m_fsr_intermediary_texture =
               g_gfx->CreateTexture(fsr_texture_config, "FSR1 EASU intermediate");
-          m_fsr_intermediary_framebuffer =
-              m_fsr_intermediary_texture ?
-                  g_gfx->CreateFramebuffer(m_fsr_intermediary_texture.get(), nullptr) :
-                  nullptr;
+          m_fsr_intermediary_framebuffer.reset();
+          if (m_fsr_intermediary_texture)
+          {
+            m_fsr_intermediary_framebuffer =
+                g_gfx->CreateFramebuffer(m_fsr_intermediary_texture.get(), nullptr);
+          }
         }
 
         if (m_fsr_intermediary_texture && m_fsr_intermediary_framebuffer)
