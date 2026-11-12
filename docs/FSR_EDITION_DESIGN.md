@@ -36,3 +36,11 @@ The current branch has only a shader prototype and documentation. No C++ frame-g
 The branch now contains `Data/Sys/Shaders/FSR1_EASU.glsl`, a shader-side adaptation of AMD's FSR 1 EASU algorithm. It maps the current post-process source rectangle to the output pixel grid, evaluates the 12-tap edge-adaptive reconstruction kernel, uses point sampling for the taps, and clamps the result to the nearest 2x2 neighborhood to reduce ringing. The AMD copyright and permissive license notice are retained in the shader.
 
 This is a spatial EASU pass, not the complete FidelityFX SDK integration. RCAS is not included yet. The shader must still be compiled and visually validated on Dolphin's D3D12 and Vulkan paths before it is considered usable. The original `FSR_Spatial.glsl` remains as a simpler comparison filter.
+
+## Second FSR 1 implementation increment: RCAS
+
+The branch now contains `Data/Sys/Shaders/FSR1_RCAS.glsl`, a shader-side adaptation of AMD's RCAS filter. It uses the 3x3 cross neighborhood (north, west, center, east, south), computes per-channel neighborhood extrema, solves a bounded negative-lobe weight to avoid clipping, and exposes sharpness in stops (0 = strongest, each +1 halves the strength). The optional noise attenuation path is enabled in this adaptation. The AMD copyright and permissive license notice are retained.
+
+Important pipeline limitation: AMD specifies RCAS as a separate pass after EASU. Dolphin's existing user post-processing selector currently selects one shader, not an ordered chain of arbitrary user shaders. Therefore the new RCAS file is selectable by itself and is not yet an integrated EASU→RCAS pipeline. A future integration must add an explicit intermediate target and run EASU then RCAS without breaking stereo, color correction, HDR, or backend synchronization.
+
+The CI shader harness was extended to include RCAS and to provide Dolphin's `SampleLocation` helper to the shader source. The first CI run previously passed the Windows build but failed its shader harness because that helper was absent from the test wrapper; the wrapper fix and RCAS check are now committed, pending a fresh workflow result.
