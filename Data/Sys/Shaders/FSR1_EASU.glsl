@@ -199,7 +199,10 @@ float4 FSR1Easu(float2 uv)
 
   float3 result = accumulated_color / max(accumulated_weight, 1.0e-8);
   result = clamp(result, min4, max4);
-  return float4(max(result, float3(0.0, 0.0, 0.0)), 1.0);
+  // EASU reconstructs RGB; retain the source alpha channel rather than
+  // forcing the intermediate render target to fully opaque.
+  float alpha = SampleLocation(uv).a;
+  return float4(max(result, float3(0.0, 0.0, 0.0)), alpha);
 }
 
 void main()
