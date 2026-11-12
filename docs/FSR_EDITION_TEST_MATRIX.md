@@ -91,3 +91,4 @@ AMD's FSR 3.1.7 guidance recommends 60 FPS or higher input for optimal frame gen
 - RCAS output must preserve positive values above 1.0 when the active render target is HDR/RGBA16F; do not clamp the result to the SDR [0, 1] range.
 - Compare bright emissive/highlight regions with RCAS off and on, and confirm that negative values are prevented without flattening HDR highlights.
 - This is a source-level correction only until the shader validator and D3D12/Vulkan runtime tests pass on the current branch head.
+- EASU must preserve the source alpha channel in its reconstructed output; verify transparent/sem transparent edges and UI composition do not become opaque after the EASU → RCAS chain.
