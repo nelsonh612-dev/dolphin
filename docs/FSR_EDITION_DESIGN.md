@@ -56,3 +56,8 @@ AMD states that FSR 3.1.7 frame generation works without a special GPU-generatio
 Official integration references:
 - https://gpuopen.com/fidelityfx-super-resolution-3/
 - https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/blob/main/Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md
+
+
+## EASU → RCAS two-pass integration
+
+The FSR Edition branch now chains the EASU selection through two separate post-processing processors: the EASU stage renders into a size-matched intermediate texture, then a separately compiled RCAS processor samples that texture and writes to the original target. The chain preserves array layers for stereo and falls back to the ordinary EASU pass if intermediate allocation or RCAS initialization fails. This is code-path implementation only; D3D12/Vulkan runtime validation, stereo testing, image comparisons and performance measurements remain outstanding.
