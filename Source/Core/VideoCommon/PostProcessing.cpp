@@ -480,6 +480,69 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
     RecompilePipeline();
   }
 
+  // EASU is an upscaler and RCAS is its sharpening resolve. Run them as two
+  // distinct render passes, rather than approximating the pair in one expensive shader.
+  // The bypass flag lets the first pass reuse this class's normal blit implementation
+  // without recursively entering this chain.
+  if (!m_bypass_fsr_chain && m_config.GetShader() == "FSR1_EASU")
+  {
+    if (!m_fsr_rcas_pass)
+    {
+      m_fsr_rcas_pass = std::make_unique<PostProcessing>();
+      m_fsr_rcas_pass->GetConfig()->LoadShader("FSR1_RCAS");
+      if (!m_fsr_rcas_pass->Initialize(m_framebuffer_format))
+        m_fsr_rcas_pass.reset();
+    }
+
+    if (m_fsr_rcas_pass)
+    {
+      const bool copy_all_fsr_layers = src_layer < 0;
+      const u32 fsr_target_layers = copy_all_fsr_layers ? src_tex->GetLayers() : 1;
+      const u32 fsr_target_width = static_cast<u32>(dst.GetWidth());
+      const u32 fsr_target_height = static_cast<u32>(dst.GetHeight());
+
+      if (fsr_target_width > 0 && fsr_target_height > 0)
+      {
+        if (!m_fsr_intermediary_framebuffer || !m_fsr_intermediary_texture ||
+            m_fsr_intermediary_texture->GetWidth() != fsr_target_width ||
+            m_fsr_intermediary_texture->GetHeight() != fsr_target_height ||
+            m_fsr_intermediary_texture->GetLayers() != fsr_target_layers ||
+            m_fsr_intermediary_texture->GetFormat() != m_framebuffer_format)
+        {
+          const TextureConfig fsr_texture_config(
+              fsr_target_width, fsr_target_height, 1, fsr_target_layers, 1, m_framebuffer_format,
+              AbstractTextureFlag_RenderTarget, AbstractTextureType::Texture_2DArray);
+          m_fsr_intermediary_texture =
+              g_gfx->CreateTexture(fsr_texture_config, "FSR1 EASU intermediate");
+          m_fsr_intermediary_framebuffer =
+              m_fsr_intermediary_texture ?
+                  g_gfx->CreateFramebuffer(m_fsr_intermediary_texture.get(), nullptr) :
+                  nullptr;
+        }
+
+        if (m_fsr_intermediary_texture && m_fsr_intermediary_framebuffer)
+        {
+          AbstractFramebuffer* const previous_framebuffer = g_gfx->GetCurrentFramebuffer();
+          const MathUtil::Rectangle<int> fsr_rect = m_fsr_intermediary_texture->GetRect();
+
+          g_gfx->SetFramebuffer(m_fsr_intermediary_framebuffer.get());
+          m_bypass_fsr_chain = true;
+          BlitFromTexture(fsr_rect, src, src_tex, src_layer);
+          m_bypass_fsr_chain = false;
+
+          g_gfx->SetFramebuffer(previous_framebuffer);
+          m_fsr_intermediary_texture->FinishedRendering();
+
+          // A single selected source layer is copied to layer zero. When all
+          // layers are requested, preserve the array-layer behavior for stereo.
+          m_fsr_rcas_pass->BlitFromTexture(
+              dst, fsr_rect, m_fsr_intermediary_texture.get(), copy_all_fsr_layers ? -1 : 0);
+          return;
+        }
+      }
+    }
+  }
+
   // By default all source layers will be copied into the respective target layers
   const bool copy_all_layers = src_layer < 0;
   src_layer = std::max(src_layer, 0);
