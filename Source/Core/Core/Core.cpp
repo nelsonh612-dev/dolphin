@@ -854,7 +854,11 @@ void RunOnCPUThread(Core::System& system, Common::MoveOnlyFunction<void()> funct
 void Callback_FramePresented(const PresentInfo& present_info)
 {
   auto& perf_metrics = Core::System::GetInstance().GetPerfMetrics();
+  // Count every frame sent through the presentation callback as output FPS.
+  // Only non-duplicate VI/Immediate frames advance the emulated game-frame counter.
   perf_metrics.CountFrame();
+  if (present_info.reason != PresentInfo::PresentReason::VideoInterfaceDuplicate)
+    perf_metrics.CountGameFrame();
 
   const auto presentation_offset =
       present_info.actual_present_time - present_info.intended_present_time;
