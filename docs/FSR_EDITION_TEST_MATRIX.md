@@ -10,6 +10,10 @@ Use this sheet after building the branch. Do not compare different games or scen
 - Display: 1920 x 1080
 - Game: Resident Evil 4 Wii PAL (RB4P08), plus one light and one demanding reference game
 
+## CI build and shader validation
+
+The workflow is `.github/workflows/fsr-edition-windows.yml`. To validate the exact current branch head, open GitHub Actions → **Windows x64 build** → **Run workflow**, select `fsr3-frame-generation`, and start it. Confirm both `build-windows-x64` and `shader-syntax` finish successfully for the same head SHA. A successful Windows job produces the `dolphin-fsr-edition-windows-x64` artifact; verify the artifact's commit SHA before using it. A successful shader-only job does not prove C++ compilation, and a successful build does not prove D3D12/Vulkan runtime behavior.
+
 ## Test runs
 
 | Run | Backend | Internal scale | Output size | Post-process | Real emulation speed | Display FPS | Avg frame time | 1% low | VRAM | Artifacts |
@@ -53,13 +57,14 @@ Record both real emulation FPS and displayed FPS. Compare latency and visual art
 Try output resolutions above the physical 1080p panel only as controlled stress tests. Keep output size separate from EFB/internal resolution. Increase internal scale one step at a time while monitoring VRAM and frame time; do not force extreme allocations by default.
 
 
-## RCAS-specific checks
+## EASU → RCAS two-pass checks
 
-- Compare RCAS off and on at identical output resolution; do not compare the standalone RCAS shader to EASU as if they were the same operation.
+- The current implementation chains EASU into a separate RCAS pass when `FSR1_EASU` is selected. Treat this as implemented source code, not runtime-verified behavior, until the current-head build and backend tests pass.
+- Compare the combined EASU → RCAS path with EASU alone at identical output resolution; compare standalone `FSR1_RCAS` separately as a sharpening-only control.
 - Test sharpness stops 0, 1, 2 and 4; inspect halos, ringing, noise amplification and clipped highlights/shadows.
 - Check image borders and all four corners for sampling seams.
 - Verify alpha/UI edges remain intact and the filter does not change the output dimensions.
-- RCAS is currently standalone; do not record an EASU+RCAS combined result until a true two-pass pipeline exists.
+- Record whether the combined path actually ran both passes; if allocation or RCAS initialization falls back to EASU alone, mark that run as fallback rather than a combined result.
 
 ## Frame-generation readiness gates
 
