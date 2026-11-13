@@ -63,10 +63,8 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, MemAccessMode mode, ARM64Reg RS, 
   if (m_accurate_cpu_cache_enabled)
     mode = MemAccessMode::AlwaysSlowAccess;
 
-  const bool lazy_slow_access =
-      jo.fastmem && !jo.memcheck && !emitting_routine && mode == MemAccessMode::Auto;
   const bool emit_fast_access = mode != MemAccessMode::AlwaysSlowAccess;
-  const bool emit_slow_access = mode != MemAccessMode::AlwaysFastAccess && !lazy_slow_access;
+  const bool emit_slow_access = mode != MemAccessMode::AlwaysFastAccess;
 
   bool in_far_code = false;
   u8* fast_access_start = GetWritableCodePtr();
@@ -152,22 +150,6 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, MemAccessMode mode, ARM64Reg RS, 
   }
   u8* fast_access_end = GetWritableCodePtr();
 
-  if (lazy_slow_access)
-  {
-    FastmemArea& fastmem_area = m_fault_to_handler_temp.emplace_back();
-    fastmem_area = {
-        .fast_access_start = fast_access_start,
-        .fast_access_end = fast_access_end,
-        .slow_access_code = nullptr,
-        .flags = flags,
-        .source_reg = RS,
-        .address_reg = addr,
-        .gprs_to_push = gprs_to_push,
-        .fprs_to_push = fprs_to_push,
-        .ppc_pc = js.compilerPC,
-    };
-  }
-
   if (emit_slow_access)
   {
     const bool memcheck = jo.memcheck && !emitting_routine;
@@ -184,12 +166,6 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, MemAccessMode mode, ARM64Reg RS, 
             .fast_access_start = fast_access_start,
             .fast_access_end = fast_access_end,
             .slow_access_code = GetCodePtr(),
-            .flags = flags,
-            .source_reg = RS,
-            .address_reg = addr,
-            .gprs_to_push = gprs_to_push,
-            .fprs_to_push = fprs_to_push,
-            .ppc_pc = js.compilerPC,
         };
       }
     }
@@ -374,51 +350,9 @@ bool JitArm64::HandleFastmemFault(SContext* ctx)
   u8* fastmem_area_end = entry_it->fast_access_end;
 
   const Common::ScopedJITPageWriteAndNoExecute enable_jit_page_writes;
-
-  const u8* slow_access_code = entry_it->slow_access_code;
-  if (!slow_access_code)
-  {
-    const bool region_0 = m_near_code_0.IsInSpace(fastmem_area_start);
-    if (!region_0 && !m_near_code_1.IsInSpace(fastmem_area_start))
-      return false;
-
-    auto& trampoline_code = region_0 ? m_trampoline_code_0 : m_trampoline_code_1;
-    if (trampoline_code.GetSpaceLeft() < 0x10000)
-      return false;
-
-    u8* const trampoline_start = trampoline_code.GetWritableCodePtr();
-    u8* const saved_code_ptr = GetWritableCodePtr();
-    u8* const saved_code_end = GetWritableCodeEnd();
-    const bool saved_write_failed = HasWriteFailed();
-
-    SetCodePtr(trampoline_start, trampoline_code.GetWritableCodeEnd());
-
-    // The trampoline is entered with BL, so X30 contains its return address.
-    // EmitBackpatchRoutine may call C++ helpers, which overwrite X30. Preserve it
-    // across the entire slow path and keep SP 16-byte aligned for AAPCS64 calls.
-    STR(IndexType::Pre, ARM64Reg::X30, ARM64Reg::SP, -16);
-    MOVI2R(ARM64Reg::W30, entry_it->ppc_pc);
-    STR(IndexType::Unsigned, ARM64Reg::W30, PPC_REG, PPCSTATE_OFF(pc));
-    EmitBackpatchRoutine(entry_it->flags, MemAccessMode::AlwaysSlowAccess,
-                         entry_it->source_reg, entry_it->address_reg, entry_it->gprs_to_push,
-                         entry_it->fprs_to_push, true);
-    LDR(IndexType::Post, ARM64Reg::X30, ARM64Reg::SP, 16);
-    RET();
-
-    const bool trampoline_write_failed = HasWriteFailed();
-    u8* const trampoline_end = GetWritableCodePtr();
-    SetCodePtr(saved_code_ptr, saved_code_end, saved_write_failed);
-    if (trampoline_write_failed)
-      return false;
-
-    FlushIcacheSection(trampoline_start, trampoline_end);
-    trampoline_code.SetCodePtr(trampoline_end, trampoline_code.GetWritableCodeEnd());
-    slow_access_code = trampoline_start;
-  }
-
   ARM64XEmitter emitter(fastmem_area_start, fastmem_area_end);
 
-  emitter.BL(slow_access_code);
+  emitter.BL(entry_it->slow_access_code);
 
   while (emitter.GetCodePtr() < fastmem_area_end)
     emitter.NOP();
