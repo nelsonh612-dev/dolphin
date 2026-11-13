@@ -3,6 +3,7 @@
 
 #include "Core/PowerPC/JitArm64/Jit.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <optional>
 #include <span>
@@ -1130,23 +1131,23 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
     return;
 
   std::string output = fmt::format(
-      "Orca Lite ARM64 JIT diagnostics\\n"
-      "reason={}\\n"
-      "blocks_compiled={}\\n"
-      "guest_instructions_compiled={}\\n"
-      "near_code_bytes_total={}\\n"
-      "far_code_bytes_total={}\\n"
-      "cache_clears={}\\n"
-      "compile_failures={}\\n"
-      "region_0_blocks={}\\n"
-      "region_1_blocks={}\\n"
-      "last_guest_pc=0x{:08X}\\n"
-      "max_near_bytes_per_block={}\\n"
-      "max_far_bytes_per_block={}\\n"
-      "max_guest_instructions_per_block={}\\n"
-      "fastmem_enabled={}\\n"
-      "fastmem_arena_enabled={}\\n"
-      "memcheck_enabled={}\\n",
+      "Orca Lite ARM64 JIT diagnostics\n"
+      "reason={}\n"
+      "blocks_compiled={}\n"
+      "guest_instructions_compiled={}\n"
+      "near_code_bytes_total={}\n"
+      "far_code_bytes_total={}\n"
+      "cache_clears={}\n"
+      "compile_failures={}\n"
+      "region_0_blocks={}\n"
+      "region_1_blocks={}\n"
+      "last_guest_pc=0x{:08X}\n"
+      "max_near_bytes_per_block={}\n"
+      "max_far_bytes_per_block={}\n"
+      "max_guest_instructions_per_block={}\n"
+      "fastmem_enabled={}\n"
+      "fastmem_arena_enabled={}\n"
+      "memcheck_enabled={}\n",
       reason, m_orca_jit_blocks_compiled, m_orca_jit_guest_instructions, m_orca_jit_near_bytes,
       m_orca_jit_far_bytes, m_orca_jit_cache_clears, m_orca_jit_compile_failures,
       m_orca_jit_region_0_blocks, m_orca_jit_region_1_blocks, m_orca_jit_last_pc,
@@ -1155,7 +1156,7 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
 
   for (const auto& [name, stats] : GetMemoryStats())
   {
-    output += fmt::format("{}_free_bytes={}\\n{}_fragmentation={:.6f}\\n", name, stats.first,
+    output += fmt::format("{}_free_bytes={}\n{}_fragmentation={:.6f}\n", name, stats.first,
                           name, stats.second);
   }
 
