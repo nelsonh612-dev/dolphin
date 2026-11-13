@@ -308,6 +308,7 @@ protected:
   void ResetStack();
 
   void FreeRanges();
+  void WriteOrcaJitStats(std::string_view reason) const;
   void GenerateAsmAndResetFreeMemoryRanges();
   void ResetFreeMemoryRanges(size_t routines_near_size, size_t routines_far_size);
 
@@ -448,4 +449,19 @@ protected:
   Common::RangeSizeSet<u8*> m_free_ranges_far_1;
 
   std::unique_ptr<HostDisassembler> m_disassembler;
+
+  // Low-overhead Orca Lite diagnostics. Counters are updated only when compiling blocks,
+  // never on the emulated instruction execution path.
+  u64 m_orca_jit_blocks_compiled = 0;
+  u64 m_orca_jit_guest_instructions = 0;
+  u64 m_orca_jit_near_bytes = 0;
+  u64 m_orca_jit_far_bytes = 0;
+  u64 m_orca_jit_cache_clears = 0;
+  u64 m_orca_jit_compile_failures = 0;
+  u64 m_orca_jit_region_0_blocks = 0;
+  u64 m_orca_jit_region_1_blocks = 0;
+  u32 m_orca_jit_last_pc = 0;
+  std::size_t m_orca_jit_max_near_bytes = 0;
+  std::size_t m_orca_jit_max_far_bytes = 0;
+  u32 m_orca_jit_max_block_instructions = 0;
 };
