@@ -29,7 +29,7 @@ la emulación es demasiado lenta.
 | Ícono | Orca original (ícono adaptativo, monocromo y PNG para Android 7) |
 | Ajustes por defecto (Android) | Contador de FPS activo, shaders asíncronos (omitir dibujado), precompilar shaders antes de iniciar |
 | Rendimiento gama baja (Android) | Reloj de CPU emulada al 60%, "Sync on idle skip" desactivado (VBI Skip queda opcional: congelaba juegos) |
-| Backend de video | Vulkan por defecto en Android (OpenGL como alternativa) |
+| Backend de video | OpenGL por defecto (como Dolphin). En el Redmi 15C dentro del juego OpenGL mantiene los 30 FPS más estable que Vulkan |
 | Núcleos rápidos | Los hilos de CPU y video se fijan a los núcleos de mayor frecuencia (big.LITTLE) |
 | Compilación | APK *release* (R8, sin depuración JNI) |
 
