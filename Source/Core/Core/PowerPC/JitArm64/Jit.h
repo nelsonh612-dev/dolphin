@@ -419,21 +419,10 @@ protected:
   Arm64Gen::ARM64FloatEmitter m_float_emit;
 
   // Because B instructions can't jump farther than +/- 128 MiB, code memory is allocated like this:
-  //
-  // m_far_code_0: x MiB of unused space, followed by 64 - x MiB of far code
-  // m_near_code_0: 64 MiB of near code
-  // m_near_code_1: x MiB of asm routines, followed by 64 - x MiB of near code
-  // m_far_code_1: 64 MiB of far code
-  //
-  // This ensures that:
-  //
-  // * Any code in m_near_code_0 can reach any code in m_far_code_0, and vice versa
-  // * Any code in m_near_code_1 can reach any code in m_far_code_1, and vice versa
-  // * Any near code can reach any near code
-  // * Any code can reach any asm routine
-  //
-  // m_far_code_0 and m_far_code_1 can't reach each other, but that isn't needed, because all blocks
-  // have their entry points in near code.
+  // m_far_code_0, m_near_code_0, m_trampoline_code_0, m_near_code_1,
+  // m_trampoline_code_1, m_far_code_1.
+  // The trampoline pools are direct children of this code block (not nested children), so their
+  // memory is released safely with the rest of the JIT allocation.
 
   Arm64Gen::ARM64CodeBlock m_near_code_0;
   Arm64Gen::ARM64CodeBlock m_near_code_1;
