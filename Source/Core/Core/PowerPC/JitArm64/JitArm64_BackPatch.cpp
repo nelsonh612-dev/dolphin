@@ -392,11 +392,17 @@ bool JitArm64::HandleFastmemFault(SContext* ctx)
     const bool saved_write_failed = HasWriteFailed();
 
     SetCodePtr(trampoline_start, trampoline_code.GetWritableCodeEnd());
+
+    // The trampoline is entered with BL, so X30 contains its return address.
+    // EmitBackpatchRoutine may call C++ helpers, which overwrite X30. Preserve it
+    // across the entire slow path and keep SP 16-byte aligned for AAPCS64 calls.
+    STR(IndexType::Pre, ARM64Reg::X30, ARM64Reg::SP, -16);
     MOVI2R(ARM64Reg::W30, entry_it->ppc_pc);
     STR(IndexType::Unsigned, ARM64Reg::W30, PPC_REG, PPCSTATE_OFF(pc));
     EmitBackpatchRoutine(entry_it->flags, MemAccessMode::AlwaysSlowAccess,
                          entry_it->source_reg, entry_it->address_reg, entry_it->gprs_to_push,
                          entry_it->fprs_to_push, true);
+    LDR(IndexType::Post, ARM64Reg::X30, ARM64Reg::SP, 16);
     RET();
 
     const bool trampoline_write_failed = HasWriteFailed();
