@@ -405,8 +405,8 @@ bool JitArm64::HandleFastmemFault(SContext* ctx)
     if (trampoline_write_failed)
       return false;
 
+    FlushIcacheSection(trampoline_start, trampoline_end);
     trampoline_code.SetCodePtr(trampoline_end, trampoline_code.GetWritableCodeEnd());
-    trampoline_code.FlushIcache();
     slow_access_code = trampoline_start;
   }
 
