@@ -118,6 +118,9 @@ android {
                     // Orca Lite: full -O3 optimization plus link-time optimization (ThinLTO)
                     // for extra CPU speed on low-end phones.
                     "-DCMAKE_BUILD_TYPE=Release",
+                    // Helio G81-Ultra big cores: tune generated native C++ for Cortex-A75.
+                    // -mtune changes scheduling choices only; it does not require A75-only ISA.
+                    "-DCMAKE_CXX_FLAGS=-mtune=cortex-a75",
                     "-DENABLE_LTO=ON"
                     // , "-DENABLE_GENERIC=ON"
                 )
