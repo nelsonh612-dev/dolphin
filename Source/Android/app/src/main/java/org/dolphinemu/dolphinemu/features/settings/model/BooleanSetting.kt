@@ -681,7 +681,7 @@ enum class BooleanSetting(
     GFX_WIDESCREEN_HACK(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "wideScreenHack", false),
     GFX_CROP_TO_ASPECT_RATIO(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "Crop", false),
     GFX_CROP_CUSTOM(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "CropCustom", false),
-    GFX_SHOW_FPS(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "ShowFPS", false),
+    GFX_SHOW_FPS(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "ShowFPS", true),
     GFX_SHOW_FTIMES(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "ShowFTimes", false),
     GFX_SHOW_VPS(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "ShowVPS", false),
     GFX_SHOW_VTIMES(Settings.FILE_GFX, Settings.SECTION_GFX_SETTINGS, "ShowVTimes", false),
@@ -777,7 +777,7 @@ enum class BooleanSetting(
         Settings.FILE_GFX,
         Settings.SECTION_GFX_SETTINGS,
         "WaitForShadersBeforeStarting",
-        false
+        true
     ),
     GFX_SAVE_TEXTURE_CACHE_TO_STATE(
         Settings.FILE_GFX,

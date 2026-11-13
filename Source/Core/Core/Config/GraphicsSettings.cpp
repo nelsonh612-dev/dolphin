@@ -42,7 +42,13 @@ const Info<int> GFX_CROP_CUSTOM_RIGHT{{System::GFX, "Settings", "CropCustomRight
 const Info<int> GFX_CROP_CUSTOM_BOTTOM{{System::GFX, "Settings", "CropCustomBottom"}, 0};
 const Info<int> GFX_SAFE_TEXTURE_CACHE_COLOR_SAMPLES{
     {System::GFX, "Settings", "SafeTextureCacheColorSamples"}, 128};
-const Info<bool> GFX_SHOW_FPS{{System::GFX, "Settings", "ShowFPS"}, false};
+// Orca Lite: low-end Android defaults (FPS counter on, async shaders, precompile).
+#if defined(ANDROID)
+constexpr bool ORCA_ANDROID = true;
+#else
+constexpr bool ORCA_ANDROID = false;
+#endif
+const Info<bool> GFX_SHOW_FPS{{System::GFX, "Settings", "ShowFPS"}, ORCA_ANDROID};
 const Info<bool> GFX_SHOW_FTIMES{{System::GFX, "Settings", "ShowFTimes"}, false};
 const Info<bool> GFX_SHOW_VPS{{System::GFX, "Settings", "ShowVPS"}, false};
 const Info<bool> GFX_SHOW_VTIMES{{System::GFX, "Settings", "ShowVTimes"}, false};
@@ -106,9 +112,11 @@ const Info<int> GFX_COMMAND_BUFFER_EXECUTE_INTERVAL{
 
 const Info<bool> GFX_SHADER_CACHE{{System::GFX, "Settings", "ShaderCache"}, true};
 const Info<bool> GFX_WAIT_FOR_SHADERS_BEFORE_STARTING{
-    {System::GFX, "Settings", "WaitForShadersBeforeStarting"}, false};
+    {System::GFX, "Settings", "WaitForShadersBeforeStarting"}, ORCA_ANDROID};
 const Info<ShaderCompilationMode> GFX_SHADER_COMPILATION_MODE{
-    {System::GFX, "Settings", "ShaderCompilationMode"}, ShaderCompilationMode::Synchronous};
+    {System::GFX, "Settings", "ShaderCompilationMode"},
+    ORCA_ANDROID ? ShaderCompilationMode::AsynchronousSkipRendering :
+                   ShaderCompilationMode::Synchronous};
 const Info<int> GFX_SHADER_COMPILER_THREADS{{System::GFX, "Settings", "ShaderCompilerThreads"}, 1};
 const Info<int> GFX_SHADER_PRECOMPILER_THREADS{
     {System::GFX, "Settings", "ShaderPrecompilerThreads"}, -1};

@@ -26,9 +26,16 @@ la emulación es demasiado lenta.
 | Nombre de la app | Orca Lite |
 | ID de aplicación | `io.github.nelsonh612.orcalite` (se instala junto a Dolphin oficial) |
 | Compilación | APK arm64 generada por GitHub Actions (`.github/workflows/orca-lite-android.yml`) |
+| Ícono | Orca original (ícono adaptativo, monocromo y PNG para Android 7) |
+| Ajustes por defecto (Android) | Contador de FPS activo, shaders asíncronos (omitir dibujado), precompilar shaders antes de iniciar |
 
-Pendiente antes de cualquier publicación: reemplazar el ícono y los recursos
-gráficos de Dolphin por los de Orca Lite.
+Pendiente antes de cualquier publicación: reemplazar los demás recursos gráficos
+de Dolphin (banner de Android TV, logos en "Acerca de") por los de Orca Lite.
+
+## Equipo de prueba
+
+Redmi 15C 4G (25078RA3EL): MediaTek Helio G81-Ultra (2× Cortex-A75 2.0 GHz +
+6× Cortex-A55), Mali-G52 MC2, 8 GB RAM, pantalla 720×1600, Android 15 / HyperOS 2.
 
 ## Probar una compilación
 

@@ -106,7 +106,7 @@ enum class IntSetting(
         Settings.FILE_GFX,
         Settings.SECTION_GFX_SETTINGS,
         "ShaderCompilationMode",
-        0
+        3
     ),
     GFX_ENHANCE_FORCE_TEXTURE_FILTERING(
         Settings.FILE_GFX,
