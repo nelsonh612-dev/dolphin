@@ -42,14 +42,14 @@
 using namespace Arm64Gen;
 
 constexpr size_t NEAR_CODE_SIZE = 1024 * 1024 * 64;
-// We use a bigger farcode size for JitArm64 than Jit64, because JitArm64 always emits farcode
-// for the slow path of each loadstore instruction. Jit64 postpones emitting farcode until the
-// farcode actually is needed, saving it from having to emit farcode for most instructions.
-// TODO: Perhaps implement something similar to Jit64. But using more RAM isn't much of a problem.
-constexpr size_t FAR_CODE_SIZE = 1024 * 1024 * 64;
+// Lazy slow paths replace the eager per-access far code. The trampoline pools are placed
+// between the near-code regions and their paired far-code regions so every BL remains in range.
+constexpr size_t FAR_CODE_SIZE_0 = 1024 * 1024 * 40;
+constexpr size_t FAR_CODE_SIZE_1 = 1024 * 1024 * 56;
 constexpr size_t TRAMPOLINE_CODE_SIZE = 1024 * 1024 * 16;
 constexpr size_t TRAMPOLINE_CACHE_RESERVE = 1024 * 1024 * 4;
-constexpr size_t TOTAL_CODE_SIZE = NEAR_CODE_SIZE * 2 + FAR_CODE_SIZE * 2;
+constexpr size_t TOTAL_CODE_SIZE =
+    NEAR_CODE_SIZE * 2 + FAR_CODE_SIZE_0 + FAR_CODE_SIZE_1 + TRAMPOLINE_CODE_SIZE * 2;
 
 JitArm64::JitArm64(Core::System& system)
     : JitBase(system), m_float_emit(this),
@@ -68,22 +68,21 @@ bool JitArm64::Init()
 
   RefreshConfig();
 
-  // We want the regions to be laid out in this order in memory:
-  // m_far_code_0, m_near_code_0, m_near_code_1, m_far_code_1.
-  // AddChildCodeSpace grabs space from the end of the parent region,
-  // so we have to call AddChildCodeSpace in reverse order.
+  // Layout (low to high): far_0, near_0, trampoline_0, near_1, trampoline_1, far_1.
+  // Keep the pools adjacent to their near-code regions so all patch branches fit in +/-128 MiB.
+  // AddChildCodeSpace takes space from the end, so allocate the regions in reverse order.
   AllocCodeSpace(TOTAL_CODE_SIZE);
-  AddChildCodeSpace(&m_far_code_1, FAR_CODE_SIZE);
+  AddChildCodeSpace(&m_far_code_1, FAR_CODE_SIZE_1);
+  AddChildCodeSpace(&m_trampoline_code_1, TRAMPOLINE_CODE_SIZE);
   AddChildCodeSpace(&m_near_code_1, NEAR_CODE_SIZE);
+  AddChildCodeSpace(&m_trampoline_code_0, TRAMPOLINE_CODE_SIZE);
   AddChildCodeSpace(&m_near_code_0, NEAR_CODE_SIZE);
-  AddChildCodeSpace(&m_far_code_0, FAR_CODE_SIZE);
-  m_far_code_1.AddChildCodeSpace(&m_trampoline_code_1, TRAMPOLINE_CODE_SIZE);
-  m_far_code_0.AddChildCodeSpace(&m_trampoline_code_0, TRAMPOLINE_CODE_SIZE);
-  ASSERT(m_far_code_0.GetCodeEnd() == m_trampoline_code_0.GetCodePtr());
-  ASSERT(m_trampoline_code_0.GetCodeEnd() == m_near_code_0.GetCodePtr());
-  ASSERT(m_near_code_0.GetCodeEnd() == m_near_code_1.GetCodePtr());
-  ASSERT(m_near_code_1.GetCodeEnd() == m_far_code_1.GetCodePtr());
-  ASSERT(m_far_code_1.GetCodeEnd() == m_trampoline_code_1.GetCodePtr());
+  AddChildCodeSpace(&m_far_code_0, FAR_CODE_SIZE_0);
+  ASSERT(m_far_code_0.GetCodeEnd() == m_near_code_0.GetCodePtr());
+  ASSERT(m_near_code_0.GetCodeEnd() == m_trampoline_code_0.GetCodePtr());
+  ASSERT(m_trampoline_code_0.GetCodeEnd() == m_near_code_1.GetCodePtr());
+  ASSERT(m_near_code_1.GetCodeEnd() == m_trampoline_code_1.GetCodePtr());
+  ASSERT(m_trampoline_code_1.GetCodeEnd() == m_far_code_1.GetCodePtr());
 
   jo.optimizeGatherPipe = true;
   SetBlockLinkingEnabled(true);
@@ -1116,9 +1115,7 @@ std::vector<JitBase::MemoryStats> JitArm64::GetMemoryStats() const
   return {{"near_0", m_free_ranges_near_0.get_stats()},
           {"near_1", m_free_ranges_near_1.get_stats()},
           {"far_0", m_free_ranges_far_0.get_stats()},
-          {"far_1", m_free_ranges_far_1.get_stats()},
-          {"trampoline_0", m_trampoline_code_0.GetSpaceLeft()},
-          {"trampoline_1", m_trampoline_code_1.GetSpaceLeft()}};
+          {"far_1", m_free_ranges_far_1.get_stats()}};
 }
 
 std::size_t JitArm64::DisassembleNearCode(const JitBlock& block, std::ostream& stream) const
