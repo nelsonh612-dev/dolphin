@@ -28,11 +28,12 @@ la emulación es demasiado lenta.
 | Compilación | APK arm64 generada por GitHub Actions (`.github/workflows/orca-lite-android.yml`) |
 | Ícono | Orca original (ícono adaptativo, monocromo y PNG para Android 7) |
 | Ajustes por defecto (Android) | Contador de FPS activo, shaders asíncronos (omitir dibujado), precompilar shaders antes de iniciar |
-| Rendimiento gama baja (Android) | Reloj de CPU emulada al 60%, VBI Skip activo, "Sync on idle skip" desactivado |
+| Rendimiento gama baja (Android) | Reloj de CPU emulada al 60%, "Sync on idle skip" desactivado (VBI Skip queda opcional: congelaba juegos) |
+| Backend de video | Vulkan por defecto en Android (OpenGL como alternativa) |
 | Núcleos rápidos | Los hilos de CPU y video se fijan a los núcleos de mayor frecuencia (big.LITTLE) |
 | Compilación | APK *release* (R8, sin depuración JNI) |
 
-Si un juego no arranca o va raro: desactivar VBI Skip y/o subir el reloj de CPU al 100%
+Si un juego se congela o va raro: subir el reloj de CPU al 100% o probar OpenGL
 (Ajustes → Avanzado / Gráficos → Hacks, o en los ajustes por juego).
 
 Pendiente antes de cualquier publicación: reemplazar los demás recursos gráficos
