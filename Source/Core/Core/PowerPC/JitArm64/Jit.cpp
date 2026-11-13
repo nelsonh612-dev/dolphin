@@ -44,12 +44,14 @@ using namespace Arm64Gen;
 constexpr size_t NEAR_CODE_SIZE = 1024 * 1024 * 64;
 // Lazy slow paths replace the eager per-access far code. The trampoline pools are placed
 // between the near-code regions and their paired far-code regions so every BL remains in range.
-constexpr size_t FAR_CODE_SIZE_0 = 1024 * 1024 * 40;
-constexpr size_t FAR_CODE_SIZE_1 = 1024 * 1024 * 56;
-constexpr size_t TRAMPOLINE_CODE_SIZE = 1024 * 1024 * 16;
+constexpr size_t FAR_CODE_SIZE_0 = 1024 * 1024 * 64;
+constexpr size_t FAR_CODE_SIZE_1 = 1024 * 1024 * 40;
+constexpr size_t TRAMPOLINE_CODE_SIZE_0 = 1024 * 1024 * 16;
+constexpr size_t TRAMPOLINE_CODE_SIZE_1 = 1024 * 1024 * 8;
 constexpr size_t TRAMPOLINE_CACHE_RESERVE = 1024 * 1024 * 4;
-constexpr size_t TOTAL_CODE_SIZE =
-    NEAR_CODE_SIZE * 2 + FAR_CODE_SIZE_0 + FAR_CODE_SIZE_1 + TRAMPOLINE_CODE_SIZE * 2;
+constexpr size_t FAR_CODE_0_RESERVED_PREFIX = 1024 * 1024 * 17;
+constexpr size_t TOTAL_CODE_SIZE = NEAR_CODE_SIZE * 2 + FAR_CODE_SIZE_0 + FAR_CODE_SIZE_1 +
+                                   TRAMPOLINE_CODE_SIZE_0 + TRAMPOLINE_CODE_SIZE_1;
 
 JitArm64::JitArm64(Core::System& system)
     : JitBase(system), m_float_emit(this),
@@ -73,9 +75,9 @@ bool JitArm64::Init()
   // AddChildCodeSpace takes space from the end, so allocate the regions in reverse order.
   AllocCodeSpace(TOTAL_CODE_SIZE);
   AddChildCodeSpace(&m_far_code_1, FAR_CODE_SIZE_1);
-  AddChildCodeSpace(&m_trampoline_code_1, TRAMPOLINE_CODE_SIZE);
+  AddChildCodeSpace(&m_trampoline_code_1, TRAMPOLINE_CODE_SIZE_1);
   AddChildCodeSpace(&m_near_code_1, NEAR_CODE_SIZE);
-  AddChildCodeSpace(&m_trampoline_code_0, TRAMPOLINE_CODE_SIZE);
+  AddChildCodeSpace(&m_trampoline_code_0, TRAMPOLINE_CODE_SIZE_0);
   AddChildCodeSpace(&m_near_code_0, NEAR_CODE_SIZE);
   AddChildCodeSpace(&m_far_code_0, FAR_CODE_SIZE_0);
   ASSERT(m_far_code_0.GetCodeEnd() == m_near_code_0.GetCodePtr());
@@ -245,8 +247,9 @@ void JitArm64::ResetFreeMemoryRanges(size_t routines_near_size, size_t routines_
 {
   // Set the near and far code regions as unused.
   m_free_ranges_far_0.clear();
-  m_free_ranges_far_0.insert(m_far_code_0.GetWritableCodePtr() + routines_near_size,
-                             m_far_code_0.GetWritableCodeEnd());
+  m_free_ranges_far_0.insert(
+      m_far_code_0.GetWritableCodePtr() + std::max(routines_near_size, FAR_CODE_0_RESERVED_PREFIX),
+      m_far_code_0.GetWritableCodeEnd());
   m_free_ranges_near_0.clear();
   m_free_ranges_near_0.insert(m_near_code_0.GetWritableCodePtr(),
                               m_near_code_0.GetWritableCodeEnd());
