@@ -9,6 +9,7 @@ on:
       - orca-lite-lazy-fastmem-prototype
       - orca-lite-cortex-a75-tune
       - orca-lite-bootfix-no-lazy-jit
+      - orca-lite-jit-diagnostics
   pull_request:
 
 permissions:

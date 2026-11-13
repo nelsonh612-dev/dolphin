@@ -51,3 +51,18 @@ Redmi 15C 4G (25078RA3EL): MediaTek Helio G81-Ultra (2× Cortex-A75 2.0 GHz +
 3. Descomprimirlo e instalar el `.apk` en el teléfono (permitir "orígenes desconocidos").
 
 Los juegos no se incluyen: cada usuario debe usar copias propias de sus discos.
+
+## Diagnóstico JIT ARM64 (rama experimental)
+
+La rama `orca-lite-jit-diagnostics` escribe `orca_jit_stats.txt` en el directorio
+`Logs` del directorio de usuario de Dolphin. En Android normalmente se encuentra en
+`/sdcard/dolphin-emu/Logs/orca_jit_stats.txt`.
+
+El archivo se actualiza al iniciar el JIT, al completar el primer bloque y cada 512 bloques
+compilados, al vaciar la caché JIT y al cerrar el núcleo. Incluye bloques compilados,
+instrucciones PowerPC traducidas, bytes de código near/far, vaciados de caché, fallos de
+compilación y espacio libre/fragmentación de las cuatro regiones. Los contadores se actualizan
+solo durante la compilación de bloques; no se añade instrumentación a cada instrucción emulada.
+
+Esta rama es solo de diagnóstico: no cambia la política de Fastmem, la asignación de memoria,
+la velocidad de la CPU emulada ni la lógica de los juegos.
