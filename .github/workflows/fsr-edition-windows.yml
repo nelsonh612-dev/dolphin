@@ -39,13 +39,44 @@ jobs:
         shell: pwsh
         run: cmake --workflow --preset ninja-release-x64
 
+      - name: Verify Windows runtime package contents
+        shell: pwsh
+        run: |
+          $binaryDir = Join-Path $env:GITHUB_WORKSPACE "build/release/x64/Binaries"
+          $requiredFiles = @(
+            "Dolphin.exe",
+            "DolphinTool.exe",
+            "Updater.exe",
+            "qt.conf",
+            "Qt6Core.dll",
+            "Qt6Gui.dll",
+            "Qt6Svg.dll",
+            "Qt6Widgets.dll",
+            "QtPlugins/platforms/qwindows.dll",
+            "Sys/Resources/OSD_Font.ttf",
+            "Sys/Shaders/FSR1_EASU.glsl",
+            "Sys/Shaders/FSR1_RCAS.glsl",
+            "Sys/Shaders/FSR_Spatial.glsl"
+          )
+          foreach ($relativePath in $requiredFiles) {
+            $file = Join-Path $binaryDir $relativePath
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Required runtime package file is missing: $relativePath"
+            }
+            if ((Get-Item -LiteralPath $file).Length -le 0) {
+              throw "Required runtime package file is empty: $relativePath"
+            }
+          }
+          $dolphin = Get-Item -LiteralPath (Join-Path $binaryDir "Dolphin.exe")
+          Write-Host ("Verified {0} required package files; Dolphin.exe is {1} bytes." -f $requiredFiles.Count, $dolphin.Length)
+
       - name: Upload Dolphin executable and build output
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dolphin-fsr-edition-windows-x64
           path: build/release/x64/Binaries/**
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
 
   shader-syntax:
@@ -58,6 +89,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y glslang-tools
+      - name: Run shader configuration regression tests
+        run: python3 -m unittest discover -s tools/tests -p "test_*.py" -v
       - name: Compile-check FSR shader sources
         run: |
           python3 tools/validate_fsr_shaders.py \

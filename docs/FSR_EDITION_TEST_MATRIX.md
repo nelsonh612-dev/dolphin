@@ -14,6 +14,8 @@ Use this sheet after building the branch. Do not compare different games or scen
 
 The workflow is `.github/workflows/fsr-edition-windows.yml`. To validate the exact current branch head, open GitHub Actions → **Windows x64 build** → **Run workflow**, select `fsr3-frame-generation`, and start it. Confirm both `build-windows-x64` and `shader-syntax` finish successfully for the same head SHA. A successful Windows job produces the `dolphin-fsr-edition-windows-x64` artifact; verify the artifact's commit SHA before using it. A successful shader-only job does not prove C++ compilation, and a successful build does not prove D3D12/Vulkan runtime behavior.
 
+The workflow also runs Python regression tests for shader-option parsing before GLSL compilation. They cover valid scalar/vector options, missing names, unknown option types, the legacy closing-tag case that produced an empty `int ;` uniform, and the shipped FSR shader configuration blocks. The Windows job verifies that the Dolphin executables, Qt platform runtime, required system resources and all three FSR shader files are present and non-empty before artifact upload; a missing artifact directory is now a hard failure. These checks validate configuration parsing, shader syntax and package contents, not application startup or game rendering.
+
 ## Test runs
 
 | Run | Backend | Internal scale | Output size | Post-process | Real emulation speed | Display FPS | Avg frame time | 1% low | VRAM | Artifacts |
