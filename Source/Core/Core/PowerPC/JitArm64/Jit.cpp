@@ -41,6 +41,7 @@
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/System.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 using namespace Arm64Gen;
 
@@ -142,7 +143,7 @@ void JitArm64::OrcaStatsOnBlockCompiled(u32 em_address, size_t region, size_t ne
   // Periodic summary so data survives the app being killed without a clean shutdown.
   // Only evaluated when a block is compiled, never on the execution path.
   const auto now = std::chrono::steady_clock::now();
-  if (now - s.last_report >= std::chrono::seconds(60))
+  if (now - s.last_report >= std::chrono::seconds(30))
     OrcaStatsReport("periodic");
 }
 
@@ -195,6 +196,20 @@ void JitArm64::OrcaStatsReport(std::string_view event)
       s.fastmem_backpatches, m_fault_to_handler.size());
 
   NOTICE_LOG_FMT(DYNA_REC, "{}", report);
+
+  // Short on-screen version, so the numbers can be captured with a screenshot on the phone.
+  if (event != "shutdown")
+  {
+    OSD::AddMessage(
+        fmt::format("[OrcaJIT {}] {:.0f}s bloques={} activos={} recompil={} ({:.0f}/min)\n"
+                    "limpiezas: sin_espacio={} externas={} | backpatch={} | "
+                    "codigo near={:.1f}MiB far={:.1f}MiB",
+                    event, seconds, s.blocks_compiled, blocks.GetBlockCount(),
+                    s.recompiles_after_invalidation, s.recompiles_after_invalidation / minutes,
+                    clears(OrcaClearReason::OutOfCodeSpace), clears(OrcaClearReason::External),
+                    s.fastmem_backpatches, s.near_bytes / MiB, s.far_bytes / MiB),
+        OSD::Duration::VERY_LONG, OSD::Color::CYAN);
+  }
 
   // Also append to <User>/Logs/orca_jit_stats.txt so it can be read on the phone without adb.
   File::IOFile file(File::GetUserPath(D_LOGS_IDX) + "orca_jit_stats.txt", "a");

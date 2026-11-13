@@ -10,7 +10,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -87,3 +87,19 @@ jobs:
           path: Source/Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      # Direct download for phones: GitHub artifacts need a login and come zipped.
+      # Every push to orca-lite-jit-stats replaces the APK in a prerelease.
+      - name: Publish APK as prerelease (orca-lite-jit-stats)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/orca-lite-jit-stats'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=orca-lite-jit-stats-latest
+          APK=$(ls Source/Android/app/build/outputs/apk/release/*.apk | head -1)
+          cp "$APK" OrcaLite-jit-stats.apk
+          gh release delete "$TAG" --cleanup-tag --yes -R "$GITHUB_REPOSITORY" || true
+          gh release create "$TAG" OrcaLite-jit-stats.apk -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Orca Lite - prueba JIT stats (${GITHUB_SHA::7})" \
+            --notes "APK de prueba (Fase 1, diagnostico JIT). Firmado con la clave de PRUEBA: no publicar."
