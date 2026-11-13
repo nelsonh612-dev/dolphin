@@ -115,7 +115,10 @@ android {
                 arguments(
                     "-DANDROID_STL=c++_static",
                     "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
-                    "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+                    // Orca Lite: full -O3 optimization plus link-time optimization (ThinLTO)
+                    // for extra CPU speed on low-end phones.
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DENABLE_LTO=ON"
                     // , "-DENABLE_GENERIC=ON"
                 )
 
