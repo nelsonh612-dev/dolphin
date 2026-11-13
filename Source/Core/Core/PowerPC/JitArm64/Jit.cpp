@@ -47,6 +47,8 @@ constexpr size_t NEAR_CODE_SIZE = 1024 * 1024 * 64;
 // farcode actually is needed, saving it from having to emit farcode for most instructions.
 // TODO: Perhaps implement something similar to Jit64. But using more RAM isn't much of a problem.
 constexpr size_t FAR_CODE_SIZE = 1024 * 1024 * 64;
+constexpr size_t TRAMPOLINE_CODE_SIZE = 1024 * 1024 * 16;
+constexpr size_t TRAMPOLINE_CACHE_RESERVE = 1024 * 1024 * 4;
 constexpr size_t TOTAL_CODE_SIZE = NEAR_CODE_SIZE * 2 + FAR_CODE_SIZE * 2;
 
 JitArm64::JitArm64(Core::System& system)
@@ -75,9 +77,13 @@ bool JitArm64::Init()
   AddChildCodeSpace(&m_near_code_1, NEAR_CODE_SIZE);
   AddChildCodeSpace(&m_near_code_0, NEAR_CODE_SIZE);
   AddChildCodeSpace(&m_far_code_0, FAR_CODE_SIZE);
-  ASSERT(m_far_code_0.GetCodeEnd() == m_near_code_0.GetCodePtr());
+  m_far_code_1.AddChildCodeSpace(&m_trampoline_code_1, TRAMPOLINE_CODE_SIZE);
+  m_far_code_0.AddChildCodeSpace(&m_trampoline_code_0, TRAMPOLINE_CODE_SIZE);
+  ASSERT(m_far_code_0.GetCodeEnd() == m_trampoline_code_0.GetCodePtr());
+  ASSERT(m_trampoline_code_0.GetCodeEnd() == m_near_code_0.GetCodePtr());
   ASSERT(m_near_code_0.GetCodeEnd() == m_near_code_1.GetCodePtr());
   ASSERT(m_near_code_1.GetCodeEnd() == m_far_code_1.GetCodePtr());
+  ASSERT(m_far_code_1.GetCodeEnd() == m_trampoline_code_1.GetCodePtr());
 
   jo.optimizeGatherPipe = true;
   SetBlockLinkingEnabled(true);
@@ -182,9 +188,11 @@ void JitArm64::ClearCache()
   blocks.ClearRangesToFree();
   const Common::ScopedJITPageWriteAndNoExecute enable_jit_page_writes;
   m_far_code_0.ClearCodeSpace();
+  m_trampoline_code_0.ClearCodeSpace();
   m_near_code_0.ClearCodeSpace();
   m_near_code_1.ClearCodeSpace();
   m_far_code_1.ClearCodeSpace();
+  m_trampoline_code_1.ClearCodeSpace();
   RefreshConfig();
 
   GenerateAsmAndResetFreeMemoryRanges();
@@ -985,8 +993,12 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
 {
   CleanUpAfterStackFault();
 
-  if (SConfig::GetInstance().bJITNoBlockCache)
+  if (SConfig::GetInstance().bJITNoBlockCache ||
+      m_trampoline_code_0.GetSpaceLeft() < TRAMPOLINE_CACHE_RESERVE ||
+      m_trampoline_code_1.GetSpaceLeft() < TRAMPOLINE_CACHE_RESERVE)
+  {
     ClearCache();
+  }
   FreeRanges();
 
   const Common::ScopedJITPageWriteAndNoExecute enable_jit_page_writes;
@@ -1104,7 +1116,9 @@ std::vector<JitBase::MemoryStats> JitArm64::GetMemoryStats() const
   return {{"near_0", m_free_ranges_near_0.get_stats()},
           {"near_1", m_free_ranges_near_1.get_stats()},
           {"far_0", m_free_ranges_far_0.get_stats()},
-          {"far_1", m_free_ranges_far_1.get_stats()}};
+          {"far_1", m_free_ranges_far_1.get_stats()},
+          {"trampoline_0", m_trampoline_code_0.GetSpaceLeft()},
+          {"trampoline_1", m_trampoline_code_1.GetSpaceLeft()}};
 }
 
 std::size_t JitArm64::DisassembleNearCode(const JitBlock& block, std::ostream& stream) const
