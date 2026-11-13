@@ -57,14 +57,32 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('Source/Android/**/*.gradle.kts', 'Source/Android/gradle/**') }}
 
-      - name: Build debug APK (${{ matrix.abi }})
+      # Release build: R8-optimized Kotlin/Java and no JNI debugging.
+      # Signed with the ORCA_KEYSTORE_B64 secret if it exists; otherwise with the
+      # public TEST-ONLY key in Source/Android/orca-test.keystore, so test builds
+      # keep the same signature and can be updated without uninstalling.
+      # Never publish a build signed with the test key.
+      - name: Build release APK (${{ matrix.abi }})
         working-directory: Source/Android
-        run: ./gradlew --no-daemon assembleDebug -PorcaAbis=${{ matrix.abi }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ORCA_KEYSTORE_B64 }}
+          STOREPASS: ${{ secrets.ORCA_STOREPASS }}
+          KEYALIAS: ${{ secrets.ORCA_KEYALIAS }}
+          KEYPASS: ${{ secrets.ORCA_KEYPASS }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/orca.keystore"
+            SIGN="-Pkeystore=$RUNNER_TEMP/orca.keystore -Pstorepass=$STOREPASS -Pkeyalias=$KEYALIAS -Pkeypass=$KEYPASS"
+          else
+            echo "::warning::Using the public TEST-ONLY signing key."
+            SIGN="-Pkeystore=$PWD/orca-test.keystore -Pstorepass=orcatest -Pkeyalias=orcatest -Pkeypass=orcatest"
+          fi
+          ./gradlew --no-daemon assembleRelease -PorcaAbis=${{ matrix.abi }} $SIGN
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: orca-lite-debug-${{ matrix.abi }}
-          path: Source/Android/app/build/outputs/apk/debug/*.apk
+          name: orca-lite-release-${{ matrix.abi }}
+          path: Source/Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14

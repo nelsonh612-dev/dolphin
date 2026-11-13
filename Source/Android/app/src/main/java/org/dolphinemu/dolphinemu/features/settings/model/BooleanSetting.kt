@@ -22,7 +22,7 @@ enum class BooleanSetting(
         Settings.FILE_DOLPHIN,
         Settings.SECTION_INI_CORE,
         "SyncOnSkipIdle",
-        true
+        false
     ),
     MAIN_ENABLE_CHEATS(Settings.FILE_DOLPHIN, Settings.SECTION_INI_CORE, "EnableCheats", false),
     MAIN_OVERRIDE_REGION_SETTINGS(
@@ -100,7 +100,7 @@ enum class BooleanSetting(
         Settings.FILE_DOLPHIN,
         Settings.SECTION_INI_CORE,
         "OverclockEnable",
-        false
+        true
     ),
     MAIN_VI_OVERCLOCK_ENABLE(
         Settings.FILE_DOLPHIN,
@@ -886,7 +886,7 @@ enum class BooleanSetting(
         "VertexRounding",
         false
     ),
-    GFX_HACK_VI_SKIP(Settings.FILE_GFX, Settings.SECTION_GFX_HACKS, "VISkip", false),
+    GFX_HACK_VI_SKIP(Settings.FILE_GFX, Settings.SECTION_GFX_HACKS, "VISkip", true),
     GFX_HACK_FAST_TEXTURE_SAMPLING(
         Settings.FILE_GFX,
         Settings.SECTION_GFX_HACKS,

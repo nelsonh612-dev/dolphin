@@ -28,6 +28,12 @@ la emulación es demasiado lenta.
 | Compilación | APK arm64 generada por GitHub Actions (`.github/workflows/orca-lite-android.yml`) |
 | Ícono | Orca original (ícono adaptativo, monocromo y PNG para Android 7) |
 | Ajustes por defecto (Android) | Contador de FPS activo, shaders asíncronos (omitir dibujado), precompilar shaders antes de iniciar |
+| Rendimiento gama baja (Android) | Reloj de CPU emulada al 60%, VBI Skip activo, "Sync on idle skip" desactivado |
+| Núcleos rápidos | Los hilos de CPU y video se fijan a los núcleos de mayor frecuencia (big.LITTLE) |
+| Compilación | APK *release* (R8, sin depuración JNI) |
+
+Si un juego no arranca o va raro: desactivar VBI Skip y/o subir el reloj de CPU al 100%
+(Ajustes → Avanzado / Gráficos → Hacks, o en los ajustes por juego).
 
 Pendiente antes de cualquier publicación: reemplazar los demás recursos gráficos
 de Dolphin (banner de Android TV, logos en "Acerca de") por los de Orca Lite.
@@ -40,7 +46,7 @@ Redmi 15C 4G (25078RA3EL): MediaTek Helio G81-Ultra (2× Cortex-A75 2.0 GHz +
 ## Probar una compilación
 
 1. Abrir la pestaña **Actions** del repositorio → *Orca Lite Android APK*.
-2. Abrir la última ejecución correcta y descargar el artefacto `orca-lite-debug-arm64`.
+2. Abrir la última ejecución correcta y descargar el artefacto `orca-lite-release-arm64-v8a`.
 3. Descomprimirlo e instalar el `.apk` en el teléfono (permitir "orígenes desconocidos").
 
 Los juegos no se incluyen: cada usuario debe usar copias propias de sus discos.

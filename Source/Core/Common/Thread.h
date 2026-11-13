@@ -19,6 +19,10 @@ int CurrentThreadId();
 void SetThreadAffinity(std::thread::native_handle_type thread, u32 mask);
 void SetCurrentThreadAffinity(u32 mask);
 
+// Orca Lite: on Android, restricts the calling thread to the CPU cores with the highest
+// maximum frequency (the "big" cores of big.LITTLE SoCs). No-op elsewhere or on failure.
+void PinCurrentThreadToFastCores();
+
 void SleepCurrentThread(int ms);
 
 // Use this function during a spin-wait to make the current thread

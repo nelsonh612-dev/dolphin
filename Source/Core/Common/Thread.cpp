@@ -1,6 +1,10 @@
 // Copyright 2008 Dolphin Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#if defined(ANDROID) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE  // sched_setaffinity / cpu_set_t in bionic
+#endif
+
 #include "Common/Thread.h"
 
 #ifdef _WIN32
@@ -19,6 +23,11 @@
 #include <sched.h>
 #elif defined __HAIKU__
 #include <OS.h>
+#endif
+
+#ifdef ANDROID
+#include <cstdio>
+#include <sched.h>
 #endif
 
 #ifdef USE_VTUNE
@@ -154,6 +163,49 @@ void SetCurrentThreadAffinity(u32 mask)
 void SleepCurrentThread(int ms)
 {
   usleep(1000 * ms);
+}
+
+void PinCurrentThreadToFastCores()
+{
+#ifdef ANDROID
+  constexpr int MAX_CPUS = 64;
+  long max_freq[MAX_CPUS] = {};
+  long best = 0;
+  int online = 0;
+  for (int cpu = 0; cpu < MAX_CPUS; ++cpu)
+  {
+    char path[96];
+    snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", cpu);
+    FILE* file = fopen(path, "r");
+    if (!file)
+      continue;
+    if (fscanf(file, "%ld", &max_freq[cpu]) == 1 && max_freq[cpu] > 0)
+    {
+      ++online;
+      if (max_freq[cpu] > best)
+        best = max_freq[cpu];
+    }
+    fclose(file);
+  }
+  if (best <= 0)
+    return;
+
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+  int fast = 0;
+  for (int cpu = 0; cpu < MAX_CPUS; ++cpu)
+  {
+    // Cores within 10% of the fastest one count as "fast" (handles prime + big clusters).
+    if (max_freq[cpu] > 0 && max_freq[cpu] * 10 >= best * 9)
+    {
+      CPU_SET(cpu, &cpu_set);
+      ++fast;
+    }
+  }
+  // Only pin on heterogeneous SoCs; on symmetric ones the scheduler already does fine.
+  if (fast > 0 && fast < online)
+    sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
+#endif
 }
 
 void SetCurrentThreadName(const char* name)
