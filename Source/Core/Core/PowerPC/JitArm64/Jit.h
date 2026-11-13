@@ -3,9 +3,12 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "Common/Arm64Emitter.h"
@@ -311,6 +314,42 @@ protected:
   void GenerateAsmAndResetFreeMemoryRanges();
   void ResetFreeMemoryRanges(size_t routines_near_size, size_t routines_far_size);
 
+  // Orca Lite JIT diagnostics (plan phase 1).
+  // Counters are only touched on the block compile path, on full cache clears and on fastmem
+  // faults. Normal emulated memory accesses executed by JIT code are never instrumented.
+  enum class OrcaClearReason : size_t
+  {
+    External = 0,         // Requested from outside the JIT (boot, savestate, config change...)
+    OutOfCodeSpace,       // No near/far region had room for a new block
+    NoBlockCacheSetting,  // "JIT no block cache" debug option
+    Count
+  };
+  struct OrcaJitStats
+  {
+    std::chrono::steady_clock::time_point session_start{};
+    std::chrono::steady_clock::time_point last_report{};
+    u32 clear_generation = 0;
+    u64 clears[static_cast<size_t>(OrcaClearReason::Count)]{};
+    u64 blocks_compiled = 0;
+    u64 near_bytes = 0;
+    u64 far_bytes = 0;
+    u64 recompiles_after_invalidation = 0;
+    u64 recompiles_after_clear = 0;
+    u64 fastmem_backpatch_sites = 0;
+    u64 fastmem_backpatches = 0;
+    u64 region_full_retries = 0;
+    // Since the last full clear, per code region (index 0/1).
+    u64 blocks_since_clear[2]{};
+    u64 near_bytes_since_clear[2]{};
+    u64 far_bytes_since_clear[2]{};
+    u64 max_near_block = 0;
+    u64 max_far_block = 0;
+  };
+  void OrcaStatsReset();
+  void OrcaStatsOnBlockCompiled(u32 em_address, size_t region, size_t near_size,
+                                size_t far_size, size_t backpatch_sites);
+  void OrcaStatsReport(std::string_view event);
+
   void IntializeSpeculativeConstants();
 
   void LogGeneratedCode() const;
@@ -448,4 +487,9 @@ protected:
   Common::RangeSizeSet<u8*> m_free_ranges_far_1;
 
   std::unique_ptr<HostDisassembler> m_disassembler;
+
+  OrcaJitStats m_orca_stats;
+  OrcaClearReason m_orca_next_clear_reason = OrcaClearReason::External;
+  // Emulated address -> clear generation in which it was last compiled.
+  std::unordered_map<u32, u32> m_orca_compiled_generation;
 };

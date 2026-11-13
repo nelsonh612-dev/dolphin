@@ -3,6 +3,7 @@
 
 #include "Core/PowerPC/JitArm64/Jit.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <optional>
 #include <span>
@@ -14,7 +15,9 @@
 
 #include "Common/Arm64Emitter.h"
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/GekkoDisassembler.h"
+#include "Common/IOFile.h"
 #include "Common/HostDisassembler.h"
 #include "Common/Logging/Log.h"
 #include "Common/MathUtil.h"
@@ -96,7 +99,107 @@ bool JitArm64::Init()
 
   GenerateAsmAndResetFreeMemoryRanges();
 
+  OrcaStatsReset();
+
   return true;
+}
+
+void JitArm64::OrcaStatsReset()
+{
+  m_orca_stats = {};
+  m_orca_stats.session_start = std::chrono::steady_clock::now();
+  m_orca_stats.last_report = m_orca_stats.session_start;
+  m_orca_next_clear_reason = OrcaClearReason::External;
+  m_orca_compiled_generation.clear();
+}
+
+void JitArm64::OrcaStatsOnBlockCompiled(u32 em_address, size_t region, size_t near_size,
+                                        size_t far_size, size_t backpatch_sites)
+{
+  OrcaJitStats& s = m_orca_stats;
+  s.blocks_compiled++;
+  s.near_bytes += near_size;
+  s.far_bytes += far_size;
+  s.fastmem_backpatch_sites += backpatch_sites;
+  s.blocks_since_clear[region]++;
+  s.near_bytes_since_clear[region] += near_size;
+  s.far_bytes_since_clear[region] += far_size;
+  s.max_near_block = std::max<u64>(s.max_near_block, near_size);
+  s.max_far_block = std::max<u64>(s.max_far_block, far_size);
+
+  const auto [it, inserted] = m_orca_compiled_generation.try_emplace(em_address, s.clear_generation);
+  if (!inserted)
+  {
+    // Same generation: the block was invalidated (icbi, self-modifying code, memory remap...)
+    // without a full clear. Older generation: it was lost in a full cache clear.
+    if (it->second == s.clear_generation)
+      s.recompiles_after_invalidation++;
+    else
+      s.recompiles_after_clear++;
+    it->second = s.clear_generation;
+  }
+
+  // Periodic summary so data survives the app being killed without a clean shutdown.
+  // Only evaluated when a block is compiled, never on the execution path.
+  const auto now = std::chrono::steady_clock::now();
+  if (now - s.last_report >= std::chrono::seconds(60))
+    OrcaStatsReport("periodic");
+}
+
+void JitArm64::OrcaStatsReport(std::string_view event)
+{
+  OrcaJitStats& s = m_orca_stats;
+  if (s.session_start == std::chrono::steady_clock::time_point{})
+    return;
+
+  const auto now = std::chrono::steady_clock::now();
+  s.last_report = now;
+  const double seconds = std::chrono::duration<double>(now - s.session_start).count();
+  const double minutes = std::max(seconds / 60.0, 1.0 / 60.0);
+  constexpr double MiB = 1024.0 * 1024.0;
+
+  const auto clears = [&](OrcaClearReason r) { return s.clears[static_cast<size_t>(r)]; };
+
+  std::string regions;
+  for (const auto& [name, stats] : GetMemoryStats())
+  {
+    regions += fmt::format(" {}={:.2f}MiB(frag {:.0f}%)", name, stats.first / MiB,
+                           stats.second * 100.0);
+  }
+
+  const std::string report = fmt::format(
+      "[OrcaJIT] event={} game={} t={:.0f}s\n"
+      "  blocks: compiled={} live={} rate={:.1f}/min | since_clear r0={} r1={}\n"
+      "  code: near={:.2f}MiB far={:.2f}MiB avg_near={:.0f}B avg_far={:.0f}B "
+      "max_near={}B max_far={}B\n"
+      "  since_clear: near r0={:.2f}MiB r1={:.2f}MiB | far r0={:.2f}MiB r1={:.2f}MiB\n"
+      "  free:{}\n"
+      "  clears: total={} out_of_space={} external={} no_block_cache={} gen={}\n"
+      "  recompiles: after_invalidation={} ({:.1f}/min) after_clear={} | "
+      "region_full_retries={}\n"
+      "  fastmem: backpatch_sites={} backpatched={} pending_blocks={}\n",
+      event, SConfig::GetInstance().GetGameID(), seconds, s.blocks_compiled,
+      blocks.GetBlockCount(), s.blocks_compiled / minutes, s.blocks_since_clear[0],
+      s.blocks_since_clear[1], s.near_bytes / MiB, s.far_bytes / MiB,
+      s.blocks_compiled ? static_cast<double>(s.near_bytes) / s.blocks_compiled : 0.0,
+      s.blocks_compiled ? static_cast<double>(s.far_bytes) / s.blocks_compiled : 0.0,
+      s.max_near_block, s.max_far_block, s.near_bytes_since_clear[0] / MiB,
+      s.near_bytes_since_clear[1] / MiB, s.far_bytes_since_clear[0] / MiB,
+      s.far_bytes_since_clear[1] / MiB, regions,
+      clears(OrcaClearReason::External) + clears(OrcaClearReason::OutOfCodeSpace) +
+          clears(OrcaClearReason::NoBlockCacheSetting),
+      clears(OrcaClearReason::OutOfCodeSpace), clears(OrcaClearReason::External),
+      clears(OrcaClearReason::NoBlockCacheSetting), s.clear_generation,
+      s.recompiles_after_invalidation, s.recompiles_after_invalidation / minutes,
+      s.recompiles_after_clear, s.region_full_retries, s.fastmem_backpatch_sites,
+      s.fastmem_backpatches, m_fault_to_handler.size());
+
+  NOTICE_LOG_FMT(DYNA_REC, "{}", report);
+
+  // Also append to <User>/Logs/orca_jit_stats.txt so it can be read on the phone without adb.
+  File::IOFile file(File::GetUserPath(D_LOGS_IDX) + "orca_jit_stats.txt", "a");
+  if (file)
+    file.WriteString(report);
 }
 
 void JitArm64::SetBlockLinkingEnabled(bool enabled)
@@ -176,6 +279,28 @@ bool JitArm64::HandleFault(uintptr_t access_address, SContext* ctx)
 
 void JitArm64::ClearCache()
 {
+  {
+    OrcaJitStats& s = m_orca_stats;
+    const OrcaClearReason reason = m_orca_next_clear_reason;
+    m_orca_next_clear_reason = OrcaClearReason::External;
+    s.clears[static_cast<size_t>(reason)]++;
+    // Only write a report when the clear actually threw away compiled code; boot and
+    // "no block cache" clears would otherwise flood the log.
+    if (reason != OrcaClearReason::NoBlockCacheSetting &&
+        (s.blocks_since_clear[0] != 0 || s.blocks_since_clear[1] != 0))
+    {
+      OrcaStatsReport(reason == OrcaClearReason::OutOfCodeSpace ? "clear_out_of_space" :
+                                                                  "clear_external");
+    }
+    s.clear_generation++;
+    for (size_t i = 0; i < 2; i++)
+    {
+      s.blocks_since_clear[i] = 0;
+      s.near_bytes_since_clear[i] = 0;
+      s.far_bytes_since_clear[i] = 0;
+    }
+  }
+
   m_fault_to_handler.clear();
 
   blocks.Clear();
@@ -253,6 +378,10 @@ void JitArm64::ResetFreeMemoryRanges(size_t routines_near_size, size_t routines_
 
 void JitArm64::Shutdown()
 {
+  OrcaStatsReport("shutdown");
+  m_orca_stats = {};
+  m_orca_compiled_generation.clear();
+
   auto& memory = m_system.GetMemory();
   memory.ShutdownFastmemArena();
   FreeCodeSpace();
@@ -986,7 +1115,10 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
   CleanUpAfterStackFault();
 
   if (SConfig::GetInstance().bJITNoBlockCache)
+  {
+    m_orca_next_clear_reason = OrcaClearReason::NoBlockCacheSetting;
     ClearCache();
+  }
   FreeRanges();
 
   const Common::ScopedJITPageWriteAndNoExecute enable_jit_page_writes;
@@ -1062,6 +1194,11 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
       b->far_begin = far_start;
       b->far_end = far_end;
 
+      OrcaStatsOnBlockCompiled(em_address, *code_region_index,
+                               static_cast<size_t>(near_end - near_start),
+                               static_cast<size_t>(far_end - far_start),
+                               m_fault_to_handler_temp.size());
+
       if (!m_fault_to_handler_temp.empty())
       {
         // The copy from temp is intentional, to minimize allocations due to exceeded vector
@@ -1076,6 +1213,9 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
 #endif
       return;
     }
+
+    // A region was selected but the block did not fit in it.
+    m_orca_stats.region_full_retries++;
   }
 
   if (clear_cache_and_retry_on_failure)
@@ -1083,6 +1223,7 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
     // Code generation failed due to not enough free space in either the near or far code regions.
     // Clear the entire JIT cache and retry.
     WARN_LOG_FMT(DYNA_REC, "flushing code caches, please report if this happens a lot");
+    m_orca_next_clear_reason = OrcaClearReason::OutOfCodeSpace;
     ClearCache();
     Jit(em_address, false);
     return;

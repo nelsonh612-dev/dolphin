@@ -364,6 +364,8 @@ bool JitArm64::HandleFastmemFault(SContext* ctx)
 
   emitter.FlushIcache();
 
+  m_orca_stats.fastmem_backpatches++;
+
   ctx->CTX_PC = reinterpret_cast<std::uintptr_t>(fastmem_area_start);
   return true;
 }

@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - orca-lite
+      - orca-lite-jit-stats
   pull_request:
 
 permissions:
@@ -18,8 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # armeabi-v7a is an experimental JIT-less build for phones with 32-bit Android.
-        abi: [arm64-v8a, armeabi-v7a]
+        # JIT diagnostics only exist in the ARM64 JIT.
+        abi: [arm64-v8a]
     timeout-minutes: 120
     env:
       NDK_VERSION: "30.0.15729638"
