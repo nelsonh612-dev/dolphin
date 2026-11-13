@@ -196,7 +196,13 @@ protected:
   {
     u8* fast_access_start;
     u8* fast_access_end;
-    const u8* slow_access_code;
+    const u8* slow_access_code = nullptr;
+    u32 flags = 0;
+    Arm64Gen::ARM64Reg source_reg = Arm64Gen::ARM64Reg::INVALID_REG;
+    Arm64Gen::ARM64Reg address_reg = Arm64Gen::ARM64Reg::INVALID_REG;
+    BitSet32 gprs_to_push{};
+    BitSet32 fprs_to_push{};
+    u32 ppc_pc = 0;
   };
 
   void SetBlockLinkingEnabled(bool enabled);
@@ -433,6 +439,9 @@ protected:
   Arm64Gen::ARM64CodeBlock m_near_code_1;
   Arm64Gen::ARM64CodeBlock m_far_code_0;
   Arm64Gen::ARM64CodeBlock m_far_code_1;
+  // Lazy slow paths are kept in pools adjacent to their corresponding near-code regions.
+  Arm64Gen::ARM64CodeBlock m_trampoline_code_0;
+  Arm64Gen::ARM64CodeBlock m_trampoline_code_1;
 
   Arm64Gen::ARM64CodeBlock m_far_code;
   bool m_in_far_code = false;
