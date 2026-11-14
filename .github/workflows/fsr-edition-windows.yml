@@ -2,9 +2,6 @@ name: Windows x64 build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - fsr3-frame-generation
   pull_request:
     branches:
       - master
