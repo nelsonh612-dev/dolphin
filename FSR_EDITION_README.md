@@ -20,8 +20,8 @@ Initial target machine: Windows laptop, NVIDIA GeForce RTX 3060 Laptop GPU, AMD 
 - [ ] Implement and validate FSR 2/3 temporal upscaling only if reliable motion vectors, depth, jitter and frame history can be supplied by the emulator.
 - [ ] Frame generation 2x: research and architecture only. Not implemented.
 - [ ] D3D12 and Vulkan runtime validation.
-- [x] Add a CI GLSL syntax-check harness for EASU, RCAS and the separate sharpening experiment. The validator wrapper now exposes Dolphin's `SampleLocation` helper; the new RCAS check is pending a fresh CI run.
-- [x] Windows x64 build and package generation succeeded in GitHub Actions for commit `c3d03f5` (before the RCAS-only additions). A fresh build for the current branch head and in-emulator runtime testing remain pending.
+- [x] Add a CI GLSL syntax-check harness for EASU, RCAS and the separate sharpening experiment. The validator assembles Dolphin's option uniforms and shader helpers; all three FSR shader checks and the configuration regression tests passed on commit `5388305`. This is syntax validation, not backend runtime validation.
+- [x] The Windows x64 C++ build completed and linked `Dolphin.exe` at commit `5388305`. The package-verification step then failed because the workflow incorrectly rejected a zero-byte `qt.conf`; no artifact was uploaded. The package check is being corrected, and current-head packaging must pass before a downloadable build is considered verified.
 
 ## Important technical distinction
 
@@ -33,7 +33,7 @@ Frame generation is a separate subsystem. Even a successful 2x frame-generation 
 
 ## Build on Windows x64
 
-The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root in an **x64 Native Tools Command Prompt for Visual Studio** on Windows, with Git for Windows, MSVC C++ build tools, the Windows SDK, CMake and Ninja installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. The helper script has not been run locally on the target laptop. GitHub Actions did successfully compile and package the Windows x64 build for commit `c3d03f5`; the current RCAS additions still need a fresh build run.
+The branch includes `BUILD_FSR_EDITION_WINDOWS.bat`. Run it from the repository root in an **x64 Native Tools Command Prompt for Visual Studio** on Windows, with Git for Windows, MSVC C++ build tools, the Windows SDK, CMake and Ninja installed. It initializes submodules, runs Dolphin's `ninja-release-x64` CMake workflow, writes `build_fsr_edition.log`, and opens the output folder if `Dolphin.exe` is found. The helper script has not been run locally on the target laptop. GitHub Actions successfully compiled and linked the Windows x64 executable at commit `5388305`, but the package verification step rejected an empty `qt.conf` even though an empty Qt configuration file is valid. No artifact was uploaded. A fresh package verification and in-emulator runtime tests are still required.
 
 ## Try the current shader
 

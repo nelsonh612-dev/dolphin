@@ -63,7 +63,10 @@ jobs:
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
               throw "Required runtime package file is missing: $relativePath"
             }
-            if ((Get-Item -LiteralPath $file).Length -le 0) {
+            # Qt's deployment step may intentionally emit an empty qt.conf.
+            # It is a valid empty configuration file; all binaries, DLLs, plugins,
+            # fonts, and shader assets must still contain data.
+            if ($relativePath -ne "qt.conf" -and (Get-Item -LiteralPath $file).Length -le 0) {
               throw "Required runtime package file is empty: $relativePath"
             }
           }
