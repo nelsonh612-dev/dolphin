@@ -6,11 +6,14 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
 
 #include "Common/Assert.h"
 #include "Common/CommonPaths.h"
+#include "Common/Config/Config.h"
+#include "Core/Config/GraphicsSettings.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileSearch.h"
 #include "Common/FileUtil.h"
@@ -153,6 +156,16 @@ void PostProcessingConfiguration::LoadOptions(const std::string& code)
 
     if (!line.empty())
     {
+      if (line.size() >= 2 && line[0] == '[' && line[1] == '/')
+      {
+        // Closing configuration tags (for example [/OptionRangeFloat]) delimit
+        // an option block; they are not option sections themselves. Treating
+        // them as sections creates an option with an empty name, which later
+        // emits an invalid uniform declaration such as "int ;" in the shader.
+        current_strings = nullptr;
+        continue;
+      }
+
       if (line[0] == '[')
       {
         size_t endpos = line.find("]");
@@ -250,6 +263,17 @@ void PostProcessingConfiguration::LoadOptions(const std::string& code)
         }
       }
     }
+    // An option without a valid section type or OptionName would be emitted as an
+    // invalid uniform declaration (for example "int ;"), breaking the whole shader.
+    const bool known_type = it.m_type == "OptionBool" || it.m_type == "OptionRangeFloat" ||
+                            it.m_type == "OptionRangeInteger";
+    if (!known_type || option.m_option_name.empty())
+    {
+      WARN_LOG_FMT(VIDEO, "Ignoring post-processing option section [{}] with name '{}'",
+                   it.m_type, option.m_option_name);
+      continue;
+    }
+
     m_options[option.m_option_name] = option;
   }
 }
@@ -419,6 +443,10 @@ std::vector<std::string> PostProcessing::GetPassiveShaderList()
 bool PostProcessing::Initialize(AbstractTextureFormat format)
 {
   m_framebuffer_format = format;
+  // A new parent initialization means the graphics device/resources may have been
+  // recreated, so allow the optional RCAS stage to be attempted again.
+  if (m_shader_override.empty())
+    m_fsr_rcas_failed_format = AbstractTextureFormat::Undefined;
   // CompilePixelShader() must be run first if configuration options are used.
   // Otherwise the UBO has a different member list between vertex and pixel
   // shaders, which is a link error on some backends.
@@ -478,6 +506,100 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
   {
     m_framebuffer_format = g_gfx->GetCurrentFramebuffer()->GetColorFormat();
     RecompilePipeline();
+  }
+
+  // EASU is an upscaler and RCAS is its sharpening resolve. Run them as two
+  // distinct render passes, rather than approximating the pair in one expensive shader.
+  // The bypass flag lets the first pass reuse this class's normal blit implementation
+  // without recursively entering this chain.
+  if (!m_bypass_fsr_chain && m_config.GetShader() == "FSR1_EASU")
+  {
+    if (!m_fsr_rcas_pass && m_fsr_rcas_failed_format != m_framebuffer_format)
+    {
+      auto rcas_pass = std::make_unique<PostProcessing>();
+      rcas_pass->SetShaderOverride("FSR1_RCAS");
+      if (rcas_pass->Initialize(m_framebuffer_format))
+      {
+        m_fsr_rcas_pass = std::move(rcas_pass);
+      }
+      else
+      {
+        // Do not retry shader/pipeline creation every rendered frame. Retry only
+        // after the parent is initialized again or the framebuffer format changes.
+        m_fsr_rcas_failed_format = m_framebuffer_format;
+        ERROR_LOG_FMT(VIDEO, "FSR1 RCAS initialization failed for framebuffer format {}; "
+                             "continuing with EASU only",
+                      static_cast<int>(m_framebuffer_format));
+      }
+    }
+
+    if (m_fsr_rcas_pass)
+    {
+      const float sharpness_stops = Config::Get(Config::GFX_FSR1_RCAS_SHARPNESS);
+      auto& rcas_options = m_fsr_rcas_pass->GetConfig()->GetOptions();
+      const auto rcas_option = rcas_options.find("sharpness_stops");
+      if (rcas_option != rcas_options.end() &&
+          !rcas_option->second.m_float_values.empty() &&
+          rcas_option->second.m_float_values[0] != sharpness_stops)
+      {
+        // RCAS reads this value from its uniform buffer; changing it does not
+        // require recompiling the shader or rebuilding its pipeline.
+        m_fsr_rcas_pass->GetConfig()->SetOptionf("sharpness_stops", 0, sharpness_stops);
+      }
+
+      const bool copy_all_fsr_layers = src_layer < 0;
+      const int fsr_target_width_signed = dst.GetWidth();
+      const int fsr_target_height_signed = dst.GetHeight();
+
+      // Validate the signed rectangle dimensions before converting them to u32.
+      // A negative rectangle width/height would otherwise wrap to a huge texture
+      // allocation request and could make the backend fail or exhaust GPU memory.
+      if (fsr_target_width_signed > 0 && fsr_target_height_signed > 0 &&
+          src_tex->GetLayers() > 0)
+      {
+        const u32 fsr_target_layers = copy_all_fsr_layers ? src_tex->GetLayers() : 1;
+        const u32 fsr_target_width = static_cast<u32>(fsr_target_width_signed);
+        const u32 fsr_target_height = static_cast<u32>(fsr_target_height_signed);
+        if (!m_fsr_intermediary_framebuffer || !m_fsr_intermediary_texture ||
+            m_fsr_intermediary_texture->GetWidth() != fsr_target_width ||
+            m_fsr_intermediary_texture->GetHeight() != fsr_target_height ||
+            m_fsr_intermediary_texture->GetLayers() != fsr_target_layers ||
+            m_fsr_intermediary_texture->GetFormat() != m_framebuffer_format)
+        {
+          const TextureConfig fsr_texture_config(
+              fsr_target_width, fsr_target_height, 1, fsr_target_layers, 1, m_framebuffer_format,
+              AbstractTextureFlag_RenderTarget, AbstractTextureType::Texture_2DArray);
+          m_fsr_intermediary_texture =
+              g_gfx->CreateTexture(fsr_texture_config, "FSR1 EASU intermediate");
+          m_fsr_intermediary_framebuffer.reset();
+          if (m_fsr_intermediary_texture)
+          {
+            m_fsr_intermediary_framebuffer =
+                g_gfx->CreateFramebuffer(m_fsr_intermediary_texture.get(), nullptr);
+          }
+        }
+
+        if (m_fsr_intermediary_texture && m_fsr_intermediary_framebuffer)
+        {
+          AbstractFramebuffer* const previous_framebuffer = g_gfx->GetCurrentFramebuffer();
+          const MathUtil::Rectangle<int> fsr_rect = m_fsr_intermediary_texture->GetRect();
+
+          g_gfx->SetFramebuffer(m_fsr_intermediary_framebuffer.get());
+          m_bypass_fsr_chain = true;
+          BlitFromTexture(fsr_rect, src, src_tex, src_layer);
+          m_bypass_fsr_chain = false;
+
+          g_gfx->SetFramebuffer(previous_framebuffer);
+          m_fsr_intermediary_texture->FinishedRendering();
+
+          // A single selected source layer is copied to layer zero. When all
+          // layers are requested, preserve the array-layer behavior for stereo.
+          m_fsr_rcas_pass->BlitFromTexture(
+              dst, fsr_rect, m_fsr_intermediary_texture.get(), copy_all_fsr_layers ? -1 : 0);
+          return;
+        }
+      }
+    }
   }
 
   // By default all source layers will be copied into the respective target layers
@@ -979,14 +1101,39 @@ bool PostProcessing::CompilePixelShader()
     m_default_uniform_staging_buffer.resize(0);
   }
 
-  m_config.LoadShader(g_ActiveConfig.sPostProcessingShader);
+  m_config.LoadShader(m_shader_override.empty() ? g_ActiveConfig.sPostProcessingShader :
+                                                        m_shader_override);
   m_pixel_shader = g_gfx->CreateShaderFromSource(
       ShaderStage::Pixel, GetHeader(true) + m_config.GetShaderCode() + GetFooter(),
       m_config.GetShaderIncluder(),
       fmt::format("User post-processing pixel shader: {}", m_config.GetShader()));
   if (!m_pixel_shader)
   {
-    PanicAlertFmt("Failed to compile user post-processing shader {}", m_config.GetShader());
+    const std::string failed_shader = m_config.GetShader();
+
+    // Internal stages and the experimental FSR shaders are optional. A backend
+    // rejecting one of them must not interrupt game startup with a modal dialog.
+    // An internal RCAS stage is disabled; a user-selected FSR shader falls back
+    // to Dolphin's default post-processing shader.
+    if (!m_shader_override.empty())
+    {
+      ERROR_LOG_FMT(VIDEO, "Failed to compile internal post-processing shader {}; disabling "
+                           "the optional pass",
+                    failed_shader);
+      m_uniform_staging_buffer.resize(0);
+      return false;
+    }
+
+    if (failed_shader == "FSR1_EASU" || failed_shader == "FSR1_RCAS")
+    {
+      ERROR_LOG_FMT(VIDEO, "Failed to compile optional FSR post-processing shader {}; falling "
+                           "back to the default shader",
+                    failed_shader);
+    }
+    else
+    {
+      PanicAlertFmt("Failed to compile user post-processing shader {}", failed_shader);
+    }
 
     // Use default shader.
     m_config.LoadDefaultShader();
