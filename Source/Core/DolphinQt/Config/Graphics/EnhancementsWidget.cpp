@@ -76,7 +76,8 @@ void EnhancementsWidget::CreateWidgets()
   const QStringList resolution_extra_options{
       tr("720p"),         tr("1080p"),        tr("1440p"), QStringLiteral(""),
       tr("4K"),           QStringLiteral(""), tr("5K"),    QStringLiteral(""),
-      QStringLiteral(""), QStringLiteral(""), tr("8K")};
+      QStringLiteral(""), QStringLiteral(""), tr("8K"),    QStringLiteral(""),
+      QStringLiteral(""), QStringLiteral(""), tr("10K (experimental)")};
   const int visible_resolution_option_count = static_cast<int>(resolution_options.size()) +
                                               static_cast<int>(resolution_extra_options.size());
 
@@ -147,6 +148,10 @@ void EnhancementsWidget::CreateWidgets()
   m_configure_post_processing_effect = new NonDefaultQPushButton(tr("Configure"));
   m_configure_post_processing_effect->setDisabled(true);
 
+  m_fsr_rcas_sharpness =
+      new ConfigFloatSlider(0.0f, 4.0f, Config::GFX_FSR1_RCAS_SHARPNESS, 0.25f, m_game_layer);
+  m_fsr_rcas_sharpness_label = new QLabel(tr("FSR RCAS Sharpness (stops):"));
+
   m_scaled_efb_copy =
       new ConfigBool(tr("Scaled EFB Copy"), Config::GFX_HACK_COPY_EFB_SCALED, m_game_layer);
   m_per_pixel_lighting =
@@ -188,6 +193,9 @@ void EnhancementsWidget::CreateWidgets()
   enhancements_layout->addWidget(new QLabel(tr("Post-Processing Effect:")), row, 0);
   enhancements_layout->addWidget(m_post_processing_effect, row, 1);
   enhancements_layout->addWidget(m_configure_post_processing_effect, row, 2);
+  ++row;
+  enhancements_layout->addWidget(m_fsr_rcas_sharpness_label, row, 0);
+  enhancements_layout->addWidget(m_fsr_rcas_sharpness, row, 1, 1, -1);
   ++row;
 
   enhancements_layout->addWidget(m_scaled_efb_copy, row, 0);
@@ -374,6 +382,7 @@ void EnhancementsWidget::OnBackendChanged()
     LoadPostProcessingShaders();
   }
 
+  ShaderChanged();
   UpdateAntialiasingOptions();
 }
 
@@ -403,6 +412,11 @@ void EnhancementsWidget::ShaderChanged()
   {
     m_configure_post_processing_effect->setEnabled(false);
   }
+
+  const bool show_fsr_controls = shader == "FSR1_EASU" && m_post_processing_effect->isEnabled();
+  m_fsr_rcas_sharpness_label->setVisible(show_fsr_controls);
+  m_fsr_rcas_sharpness->setVisible(show_fsr_controls);
+  m_fsr_rcas_sharpness->setEnabled(g_backend_info.bSupportsPostProcessing);
 }
 
 void EnhancementsWidget::UpdateAntialiasingOptions()
@@ -498,6 +512,10 @@ void EnhancementsWidget::AddDescriptions()
   static const char TR_POSTPROCESSING_DESCRIPTION[] =
       QT_TR_NOOP("Applies a post-processing effect after rendering a frame.<br><br "
                  "/><dolphin_emphasis>If unsure, select (off).</dolphin_emphasis>");
+  static const char TR_FSR_RCAS_SHARPNESS_DESCRIPTION[] =
+      QT_TR_NOOP("Controls the sharpening strength of the RCAS pass when FSR1_EASU is selected. "
+                 "Zero is strongest; each additional stop halves the sharpening strength. "
+                 "Higher values reduce sharpening and can help avoid ringing or oversharpening.");
   static const char TR_SCALED_EFB_COPY_DESCRIPTION[] =
       QT_TR_NOOP("Greatly increases the quality of textures generated using render-to-texture "
                  "effects.<br><br>Slightly increases GPU load and causes relatively few graphical "
@@ -585,6 +603,8 @@ void EnhancementsWidget::AddDescriptions()
 
   m_post_processing_effect->SetTitle(tr("Post-Processing Effect"));
   m_post_processing_effect->SetDescription(tr(TR_POSTPROCESSING_DESCRIPTION));
+  m_fsr_rcas_sharpness_label->setToolTip(tr(TR_FSR_RCAS_SHARPNESS_DESCRIPTION));
+  m_fsr_rcas_sharpness->setToolTip(tr(TR_FSR_RCAS_SHARPNESS_DESCRIPTION));
 
   m_scaled_efb_copy->SetDescription(tr(TR_SCALED_EFB_COPY_DESCRIPTION));
 

@@ -29,6 +29,7 @@ public:
   void Reset();
 
   void CountFrame();
+  void CountGameFrame();
   void CountVBlank();
 
   // Call from CPU thread.
@@ -38,6 +39,7 @@ public:
 
   // Getter Functions. May be called from any thread.
   double GetFPS() const;
+  double GetGameFPS() const;
   double GetVPS() const;
   double GetSpeed() const;
   double GetMaxSpeed() const;
@@ -58,6 +60,7 @@ private:
   };
 
   PerformanceTracker m_fps_counter{"render_times.txt"};
+  PerformanceTracker m_game_fps_counter{"game_frame_times.txt"};
   PerformanceTracker m_vps_counter{"vblank_times.txt"};
 
   double m_graph_max_time = 0.0;

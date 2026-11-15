@@ -854,7 +854,11 @@ void RunOnCPUThread(Core::System& system, Common::MoveOnlyFunction<void()> funct
 void Callback_FramePresented(const PresentInfo& present_info)
 {
   auto& perf_metrics = Core::System::GetInstance().GetPerfMetrics();
+  // Count every submitted frame as output FPS. Exclude duplicate VI
+  // presentations from the unique VI rate.
   perf_metrics.CountFrame();
+  if (present_info.reason != PresentInfo::PresentReason::VideoInterfaceDuplicate)
+    perf_metrics.CountGameFrame();
 
   const auto presentation_offset =
       present_info.actual_present_time - present_info.intended_present_time;
@@ -869,7 +873,7 @@ void Callback_FramePresented(const PresentInfo& present_info)
   s_stop_frame_step.store(true);
 }
 
-// Called from VideoInterface::Update (CPU thread) at emulated field boundaries
+// Called from VideoInterface::Update (CPU thread) at emulated field boundaries.
 void Callback_NewField(Core::System& system)
 {
   if (s_frame_step)

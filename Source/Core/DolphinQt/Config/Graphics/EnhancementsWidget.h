@@ -47,6 +47,8 @@ private:
   ConfigComplexChoice* m_texture_filtering_combo;
   ConfigChoice* m_output_resampling_combo;
   ConfigStringChoice* m_post_processing_effect;
+  ConfigFloatSlider* m_fsr_rcas_sharpness;
+  QLabel* m_fsr_rcas_sharpness_label;
   ToolTipPushButton* m_configure_color_correction;
   QPushButton* m_configure_post_processing_effect;
   ConfigBool* m_scaled_efb_copy;

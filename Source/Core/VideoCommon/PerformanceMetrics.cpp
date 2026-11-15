@@ -17,6 +17,7 @@ PerformanceMetrics::PerformanceMetrics()
 {
   const auto invalidate_counters_last_time = [this](Core::State) {
     m_fps_counter.InvalidateLastTime();
+    m_game_fps_counter.InvalidateLastTime();
     m_vps_counter.InvalidateLastTime();
   };
   m_state_change_hook = Core::AddOnStateChangedCallback(invalidate_counters_last_time);
@@ -25,6 +26,7 @@ PerformanceMetrics::PerformanceMetrics()
 void PerformanceMetrics::Reset()
 {
   m_fps_counter.Reset();
+  m_game_fps_counter.Reset();
   m_vps_counter.Reset();
 
   m_time_sleeping = DT::zero();
@@ -39,6 +41,11 @@ void PerformanceMetrics::Reset()
 void PerformanceMetrics::CountFrame()
 {
   m_fps_counter.Count();
+}
+
+void PerformanceMetrics::CountGameFrame()
+{
+  m_game_fps_counter.Count();
 }
 
 void PerformanceMetrics::CountVBlank()
@@ -88,6 +95,11 @@ double PerformanceMetrics::GetFPS() const
   return m_fps_counter.GetHzAvg();
 }
 
+double PerformanceMetrics::GetGameFPS() const
+{
+  return m_game_fps_counter.GetHzAvg();
+}
+
 double PerformanceMetrics::GetVPS() const
 {
   return m_vps_counter.GetHzAvg();
@@ -117,6 +129,7 @@ void PerformanceMetrics::DrawImGuiStats(const float backbuffer_scale)
 {
   m_vps_counter.UpdateStats();
   m_fps_counter.UpdateStats();
+  m_game_fps_counter.UpdateStats();
 
   const bool movable_overlays = Config::Get(Config::GFX_MOVABLE_PERFORMANCE_METRICS);
   const int movable_flag = movable_overlays ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoMove;
@@ -127,6 +140,7 @@ void PerformanceMetrics::DrawImGuiStats(const float backbuffer_scale)
                            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing;
 
   const double fps = GetFPS();
+  const double game_fps = GetGameFPS();
   const double vps = GetVPS();
   const double speed = GetSpeed();
 
@@ -307,7 +321,10 @@ void PerformanceMetrics::DrawImGuiStats(const float backbuffer_scale)
         window_x -= ImGui::GetWindowWidth() + window_padding;
       clamp_window_position();
       if (g_ActiveConfig.bShowFPS)
-        ImGui::TextColored(ImVec4(r, g, b, 1.0f), "FPS:%7.2lf", fps);
+      {
+        ImGui::TextColored(ImVec4(r, g, b, 1.0f), "Unique Frame FPS:%7.2lf", game_fps);
+        ImGui::TextColored(ImVec4(r, g, b, 1.0f), "Output FPS:%7.2lf", fps);
+      }
       if (g_ActiveConfig.bShowFTimes)
       {
         ImGui::TextColored(ImVec4(r, g, b, 1.0f), "dt:%6.2lfms",
