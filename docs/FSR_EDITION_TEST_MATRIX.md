@@ -14,7 +14,7 @@ Use this sheet after building the branch. Do not compare different games or scen
 
 The workflow is `.github/workflows/fsr-edition-windows.yml`. To validate the exact current branch head, open GitHub Actions → **Windows x64 build** → **Run workflow**, select `fsr3-frame-generation`, and start it. Confirm both `build-windows-x64` and `shader-syntax` finish successfully for the same head SHA. A successful Windows job produces the `dolphin-fsr-edition-windows-x64` artifact; verify the artifact's commit SHA before using it. A successful shader-only job does not prove C++ compilation, and a successful build does not prove D3D12/Vulkan runtime behavior.
 
-The workflow also runs Python regression tests for shader-option parsing before GLSL compilation. They cover valid scalar/vector options, missing names, unknown option types, the legacy closing-tag case that produced an empty `int ;` uniform, and the shipped FSR shader configuration blocks. The Windows job verifies that the Dolphin executables, Qt platform runtime, required system resources and all three FSR shader files are present and non-empty before artifact upload; a missing artifact directory is now a hard failure. These checks validate configuration parsing, shader syntax and package contents, not application startup or game rendering.
+The workflow runs Python regression tests for shader-option parsing and GLSL compilation before the Windows build. The Windows job depends on the shader job, verifies the Dolphin executables, Qt platform runtime, required system resources and all three FSR shader files, then writes `FSR_EDITION_BUILD_INFO.txt` into the package with the exact source commit, branch, workflow URL and explicit CI/runtime-test status. A missing artifact directory or manifest is a hard failure. These checks validate configuration parsing, shader syntax, C++ compilation and package contents, not application startup or game rendering.
 
 ## Test runs
 
@@ -66,6 +66,8 @@ Try output resolutions above the physical 1080p panel only as controlled stress 
 - Test sharpness stops 0, 1, 2 and 4; inspect halos, ringing, noise amplification and clipped highlights/shadows.
 - Check image borders and all four corners for sampling seams.
 - Verify alpha/UI edges remain intact and the filter does not change the output dimensions.
+- With color correction/output resampling enabled, verify the fixed pipeline is applied once before RCAS, not a second time in the internal RCAS pass.
+- Repeat the ordering check with HDR/RGBA16F output and inspect highlight range and gamma.
 - Record whether the combined path actually ran both passes; if allocation or RCAS initialization falls back to EASU alone, mark that run as fallback rather than a combined result.
 
 ## Frame-generation readiness gates

@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build-windows-x64:
+    needs: shader-syntax
     runs-on: windows-2025
     timeout-minutes: 90
     steps:
@@ -69,6 +70,42 @@ jobs:
           }
           $dolphin = Get-Item -LiteralPath (Join-Path $binaryDir "Dolphin.exe")
           Write-Host ("Verified {0} required package files; Dolphin.exe is {1} bytes." -f $requiredFiles.Count, $dolphin.Length)
+
+      - name: Write FSR Edition build manifest
+        shell: pwsh
+        run: |
+          $sourceCommit = (git rev-parse HEAD).Trim()
+          $sourceBranch = $env:GITHUB_HEAD_REF
+          if ([string]::IsNullOrWhiteSpace($sourceBranch)) {
+            $sourceBranch = $env:GITHUB_REF_NAME
+          }
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $manifestPath = Join-Path $env:GITHUB_WORKSPACE "build/release/x64/Binaries/FSR_EDITION_BUILD_INFO.txt"
+          $manifestLines = @(
+            "Project: Dolphin FSR Edition"
+            "Repository: $env:GITHUB_REPOSITORY"
+            "Branch: $sourceBranch"
+            "Source commit: $sourceCommit"
+            "Workflow run: $env:GITHUB_RUN_ID"
+            "Workflow URL: $runUrl"
+            "Build configuration: Windows x64 Release (ninja-release-x64)"
+            "Windows C++ build: PASS"
+            "Shader configuration regression tests: PASS (required shader-syntax job)"
+            "GLSL syntax validation: PASS (required shader-syntax job)"
+            "Runtime startup: NOT TESTED by CI"
+            "D3D12/Vulkan runtime rendering: NOT TESTED by CI"
+            "Resident Evil 4 Wii PAL RB4P08: NOT TESTED by CI"
+            "Spatial features: FSR1 EASU upscaling and RCAS sharpening"
+            "FSR2/FSR3 temporal upscaling: NOT IMPLEMENTED"
+            "FSR3 frame generation: NOT IMPLEMENTED"
+            "FPS reporting: Unique Frame FPS and Output FPS; no generated-frame counter"
+            "Target test hardware: RTX 3060 Laptop GPU, Ryzen 7 4800H, 16 GB RAM, 1080p"
+          )
+          $manifestLines | Set-Content -LiteralPath $manifestPath -Encoding utf8
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw "Failed to write FSR Edition build manifest."
+          }
+          Write-Host "Wrote build manifest for commit $sourceCommit"
 
       - name: Upload Dolphin executable and build output
         if: success()

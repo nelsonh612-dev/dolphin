@@ -29,21 +29,21 @@ Do not implement a fake 2x toggle. First map the present/swapchain lifecycle for
 
 ## Current blocker
 
-The current branch has only a shader prototype and documentation. No C++ frame-generation implementation, FSR SDK integration, custom settings page, Windows binary, or runtime validation is claimed.
+The branch contains source-level FSR 1 EASU spatial upscaling, a separate RCAS sharpening pass, the EASU-to-RCAS render-target chain, and a configurable RCAS sharpness setting. CI validates shader configuration and GLSL syntax and builds/packages a Windows x64 executable. These checks do not prove application startup or runtime rendering. No FSR 2/3 temporal integration or frame-generation implementation is present, and no D3D12/Vulkan or game-specific runtime success is claimed.
 
 ## First FSR implementation increment
 
 The branch now contains `Data/Sys/Shaders/FSR1_EASU.glsl`, a shader-side adaptation of AMD's FSR 1 EASU algorithm. It maps the current post-process source rectangle to the output pixel grid, evaluates the 12-tap edge-adaptive reconstruction kernel, uses point sampling for the taps, and clamps the result to the nearest 2x2 neighborhood to reduce ringing. The AMD copyright and permissive license notice are retained in the shader.
 
-This is a spatial EASU pass, not the complete FidelityFX SDK integration. RCAS is not included yet. The shader must still be compiled and visually validated on Dolphin's D3D12 and Vulkan paths before it is considered usable. The original `FSR_Spatial.glsl` remains as a simpler comparison filter.
+This is a spatial EASU pass, not the complete FidelityFX SDK integration. It is paired with the separate RCAS sharpening pass described below. The shaders are compile-checked in CI, but visual and runtime validation on Dolphin's D3D12 and Vulkan paths is still required. The original `FSR_Spatial.glsl` remains as a simpler comparison filter.
 
 ## Second FSR 1 implementation increment: RCAS
 
 The branch now contains `Data/Sys/Shaders/FSR1_RCAS.glsl`, a shader-side adaptation of AMD's RCAS filter. It uses the 3x3 cross neighborhood (north, west, center, east, south), computes per-channel neighborhood extrema, solves a bounded negative-lobe weight to avoid clipping, and exposes sharpness in stops (0 = strongest, each +1 halves the strength). The optional noise attenuation path is enabled in this adaptation. The AMD copyright and permissive license notice are retained.
 
-Pipeline status: AMD specifies RCAS as a separate pass after EASU. The branch now implements an explicit EASU intermediate render target followed by a separately compiled RCAS processor, with a fixed internal shader override so RCAS does not inherit the global post-processing selection. The RCAS sharpness setting is propagated to its own configuration and recompiles that pass when changed. This source integration is not yet runtime-verified; stereo, color correction, HDR, allocation fallback and backend synchronization still require D3D12/Vulkan tests.
+Pipeline status: AMD specifies RCAS as a separate pass after EASU. The branch now implements an explicit EASU intermediate render target followed by a separately compiled RCAS processor, with a fixed internal shader override so RCAS does not inherit the global post-processing selection. The RCAS sharpness setting is propagated to its own configuration and updated through the RCAS uniform buffer without recompiling the shader. This source integration is not yet runtime-verified; stereo, color correction, HDR, allocation fallback and backend synchronization still require D3D12/Vulkan tests.
 
-The shader CI harness now checks EASU, RCAS and the separate spatial comparison shader. A historical shader job failed on an older commit because its wrapper did not match Dolphin's `SampleLocation` helper signature. The current wrapper includes a four-component return value and layer-aware sampling, but no successful shader validation has yet been recorded for the current branch head.
+The shader CI harness checks the configuration parser and compiles EASU, RCAS and the separate spatial comparison shader using Dolphin-compatible helper declarations. A successful CI result confirms configuration and shader syntax only; it does not replace backend runtime or visual tests.
 
 ## Frame-generation feasibility update (AMD FSR 3.1.x)
 
@@ -66,3 +66,8 @@ The FSR Edition branch now chains the EASU selection through two separate post-p
 ## Frame-rate metric semantics
 
 The performance overlay now exposes two distinct measurements: Unique Frame FPS counts non-duplicate emulated VI and immediate frames, while Output FPS counts all presentation callbacks, including duplicate presentations. This is groundwork only; generated FPS must be counted at the actual frame-interpolation submission/presentation point after a real FSR3 frame-generation integration exists. Do not label output FPS as generated FPS.
+
+
+## EASU/RCAS fixed-pipeline ordering
+
+The EASU stage uses Dolphin's existing fixed color-correction and output-resampling path when those features are enabled. The internal RCAS resolve must not run that fixed stage again, or HDR/color-space transforms and resampling could be applied twice. The RCAS processor therefore skips the fixed pipeline while retaining its own RCAS shader and sharpness uniform. This ordering still requires visual validation with SDR color correction and HDR/RGBA16F output on D3D12 and Vulkan.

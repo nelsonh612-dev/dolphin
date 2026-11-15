@@ -518,6 +518,9 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
     {
       auto rcas_pass = std::make_unique<PostProcessing>();
       rcas_pass->SetShaderOverride("FSR1_RCAS");
+      // EASU already ran Dolphin's fixed color-correction/resampling stage.
+      // Running it again here would double-apply gamma/color transforms and resampling.
+      rcas_pass->SetSkipDefaultPipeline(true);
       if (rcas_pass->Initialize(m_framebuffer_format))
       {
         m_fsr_rcas_pass = std::move(rcas_pass);
@@ -612,10 +615,11 @@ void PostProcessing::BlitFromTexture(const MathUtil::Rectangle<int>& dst,
   g_gfx->SetTexture(0, src_tex);
   g_gfx->SetTexture(1, src_tex);
 
-  const bool needs_color_correction = IsColorCorrectionActive();
+  const bool needs_color_correction = !m_skip_default_pipeline && IsColorCorrectionActive();
   // Rely on the default (bi)linear sampler with the default mode
   // (it might not be gamma corrected).
   const bool needs_resampling =
+      !m_skip_default_pipeline &&
       g_ActiveConfig.output_resampling_mode > OutputResamplingMode::Default;
   const bool needs_intermediary_buffer = NeedsIntermediaryBuffer();
   const bool needs_default_pipeline = needs_color_correction || needs_resampling;

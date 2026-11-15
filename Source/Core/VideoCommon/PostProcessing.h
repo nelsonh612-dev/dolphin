@@ -107,6 +107,9 @@ public:
 
   bool Initialize(AbstractTextureFormat format);
   void SetShaderOverride(const std::string& shader) { m_shader_override = shader; }
+  // Internal passes can skip the fixed color-correction/resampling stage when the
+  // input image has already passed through it.
+  void SetSkipDefaultPipeline(bool skip) { m_skip_default_pipeline = skip; }
 
   void RecompileShader();
   void RecompilePipeline();
@@ -157,6 +160,7 @@ protected:
   // Optional fixed shader used by internal post-processing stages such as RCAS.
   // It must survive shader recompilation instead of following the global UI selection.
   std::string m_shader_override;
+  bool m_skip_default_pipeline = false;
   std::unique_ptr<AbstractShader> m_vertex_shader;
   std::unique_ptr<AbstractShader> m_pixel_shader;
   std::unique_ptr<AbstractPipeline> m_pipeline;
