@@ -58,11 +58,12 @@ La rama `orca-lite-jit-diagnostics` escribe `orca_jit_stats.txt` en el directori
 `Logs` del directorio de usuario de Dolphin. En Android normalmente se encuentra en
 `/sdcard/dolphin-emu/Logs/orca_jit_stats.txt`.
 
-El archivo se actualiza al iniciar el JIT, al completar el primer bloque y cada 512 bloques
-compilados, al vaciar la caché JIT y al cerrar el núcleo. Incluye bloques compilados,
-instrucciones PowerPC traducidas, bytes de código near/far, vaciados de caché, fallos de
-compilación y espacio libre/fragmentación de las cuatro regiones. Los contadores se actualizan
-solo durante la compilación de bloques; no se añade instrumentación a cada instrucción emulada.
+El archivo se escribe al iniciar el JIT, al cerrar el núcleo y cuando ocurre un fallo de
+compilación. Las estadísticas finales incluyen bloques compilados, instrucciones PowerPC
+traducidas, bytes de código near/far, vaciados de caché, fallos de compilación y espacio
+libre/fragmentación de las cuatro regiones. Los contadores se actualizan durante la compilación
+de bloques; no se añade instrumentación a cada instrucción emulada ni escritura de archivos
+periódica durante la compilación normal, para evitar pausas de E/S en el hilo del emulador.
 
 Esta rama es solo de diagnóstico: no cambia la política de Fastmem, la asignación de memoria,
 la velocidad de la CPU emulada ni la lógica de los juegos.
