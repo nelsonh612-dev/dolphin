@@ -1043,6 +1043,7 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
     u8* far_start = m_far_code.GetWritableCodePtr();
 
     JitBlock* b = blocks.AllocateBlock(em_address);
+    ++m_orca_jit_compile_attempts;
     const auto compile_start = std::chrono::steady_clock::now();
     const bool jit_succeeded = DoJit(em_address, b, nextPC);
     const u64 compile_time_ns = static_cast<u64>(
@@ -1149,6 +1150,7 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       "max_near_bytes_per_block={}\n"
       "max_far_bytes_per_block={}\n"
       "max_guest_instructions_per_block={}\n"
+      "compile_attempts={}\n"
       "compile_time_ns_total={}\n"
       "compile_time_ns_average={}\n"
       "compile_time_ns_max={}\n"
@@ -1159,9 +1161,9 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       m_orca_jit_far_bytes, m_orca_jit_cache_clears, m_orca_jit_compile_failures,
       m_orca_jit_region_0_blocks, m_orca_jit_region_1_blocks, m_orca_jit_last_pc,
       m_orca_jit_max_near_bytes, m_orca_jit_max_far_bytes, m_orca_jit_max_block_instructions,
-      m_orca_jit_compile_time_ns,
-      m_orca_jit_blocks_compiled == 0 ? 0 :
-          m_orca_jit_compile_time_ns / m_orca_jit_blocks_compiled,
+      m_orca_jit_compile_attempts, m_orca_jit_compile_time_ns,
+      m_orca_jit_compile_attempts == 0 ? 0 :
+          m_orca_jit_compile_time_ns / m_orca_jit_compile_attempts,
       m_orca_jit_max_compile_time_ns, jo.fastmem, jo.fastmem_arena, jo.memcheck);
 
   for (const auto& [name, stats] : GetMemoryStats())
