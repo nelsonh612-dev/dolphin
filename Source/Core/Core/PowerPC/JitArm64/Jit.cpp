@@ -192,7 +192,6 @@ void JitArm64::ClearCache()
   RefreshConfig();
 
   GenerateAsmAndResetFreeMemoryRanges();
-  WriteOrcaJitStats("JIT cache cleared");
 }
 
 void JitArm64::GenerateAsmAndResetFreeMemoryRanges()
@@ -1092,11 +1091,6 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
         ++m_orca_jit_region_0_blocks;
       else
         ++m_orca_jit_region_1_blocks;
-
-      // Write once at the beginning, then every 512 compiled blocks. No file I/O is
-      // performed in the normal emulated memory-access or instruction-execution path.
-      if (m_orca_jit_blocks_compiled == 1 || (m_orca_jit_blocks_compiled % 512) == 0)
-        WriteOrcaJitStats("JIT running");
 
 #ifdef JIT_LOG_GENERATED_CODE
       LogGeneratedCode();
