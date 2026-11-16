@@ -456,6 +456,7 @@ protected:
   u64 m_orca_jit_guest_instructions = 0;
   u64 m_orca_jit_near_bytes = 0;
   u64 m_orca_jit_far_bytes = 0;
+  u64 m_orca_jit_compile_attempts = 0;
   u64 m_orca_jit_compile_time_ns = 0;
   u64 m_orca_jit_max_compile_time_ns = 0;
   u64 m_orca_jit_cache_clears = 0;
