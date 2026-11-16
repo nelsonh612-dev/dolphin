@@ -4,6 +4,7 @@
 #include "Core/PowerPC/JitArm64/Jit.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <optional>
 #include <span>
@@ -1042,7 +1043,16 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
     u8* far_start = m_far_code.GetWritableCodePtr();
 
     JitBlock* b = blocks.AllocateBlock(em_address);
-    if (DoJit(em_address, b, nextPC))
+    const auto compile_start = std::chrono::steady_clock::now();
+    const bool jit_succeeded = DoJit(em_address, b, nextPC);
+    const u64 compile_time_ns = static_cast<u64>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - compile_start)
+            .count());
+    m_orca_jit_compile_time_ns += compile_time_ns;
+    m_orca_jit_max_compile_time_ns = std::max(m_orca_jit_max_compile_time_ns, compile_time_ns);
+
+    if (jit_succeeded)
     {
       // Code generation succeeded.
 
@@ -1139,6 +1149,9 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       "max_near_bytes_per_block={}\n"
       "max_far_bytes_per_block={}\n"
       "max_guest_instructions_per_block={}\n"
+      "compile_time_ns_total={}\n"
+      "compile_time_ns_average={}\n"
+      "compile_time_ns_max={}\n"
       "fastmem_enabled={}\n"
       "fastmem_arena_enabled={}\n"
       "memcheck_enabled={}\n",
@@ -1146,7 +1159,10 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       m_orca_jit_far_bytes, m_orca_jit_cache_clears, m_orca_jit_compile_failures,
       m_orca_jit_region_0_blocks, m_orca_jit_region_1_blocks, m_orca_jit_last_pc,
       m_orca_jit_max_near_bytes, m_orca_jit_max_far_bytes, m_orca_jit_max_block_instructions,
-      jo.fastmem, jo.fastmem_arena, jo.memcheck);
+      m_orca_jit_compile_time_ns,
+      m_orca_jit_blocks_compiled == 0 ? 0 :
+          m_orca_jit_compile_time_ns / m_orca_jit_blocks_compiled,
+      m_orca_jit_max_compile_time_ns, jo.fastmem, jo.fastmem_arena, jo.memcheck);
 
   for (const auto& [name, stats] : GetMemoryStats())
   {
