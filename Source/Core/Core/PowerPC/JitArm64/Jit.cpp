@@ -3,6 +3,8 @@
 
 #include "Core/PowerPC/JitArm64/Jit.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <optional>
 #include <span>
@@ -14,6 +16,7 @@
 
 #include "Common/Arm64Emitter.h"
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/GekkoDisassembler.h"
 #include "Common/HostDisassembler.h"
 #include "Common/Logging/Log.h"
@@ -95,6 +98,7 @@ bool JitArm64::Init()
   InitBLROptimization();
 
   GenerateAsmAndResetFreeMemoryRanges();
+  WriteOrcaJitStats("JIT initialized");
 
   return true;
 }
@@ -176,6 +180,7 @@ bool JitArm64::HandleFault(uintptr_t access_address, SContext* ctx)
 
 void JitArm64::ClearCache()
 {
+  ++m_orca_jit_cache_clears;
   m_fault_to_handler.clear();
 
   blocks.Clear();
@@ -253,6 +258,7 @@ void JitArm64::ResetFreeMemoryRanges(size_t routines_near_size, size_t routines_
 
 void JitArm64::Shutdown()
 {
+  WriteOrcaJitStats("JIT shutdown");
   auto& memory = m_system.GetMemory();
   memory.ShutdownFastmemArena();
   FreeCodeSpace();
@@ -1018,7 +1024,15 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
   // Analyze the block, collect all instructions it is made of (including inlining,
   // if that is enabled), reorder instructions for optimal performance, and join joinable
   // instructions.
+  ++m_orca_jit_analyze_attempts;
+  const auto analyze_start = std::chrono::steady_clock::now();
   const u32 nextPC = analyzer.Analyze(em_address, &code_block, &m_code_buffer, block_size);
+  const u64 analyze_time_ns = static_cast<u64>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now() - analyze_start)
+          .count());
+  m_orca_jit_analyze_time_ns += analyze_time_ns;
+  m_orca_jit_max_analyze_time_ns = std::max(m_orca_jit_max_analyze_time_ns, analyze_time_ns);
 
   if (code_block.m_memory_exception)
   {
@@ -1037,7 +1051,17 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
     u8* far_start = m_far_code.GetWritableCodePtr();
 
     JitBlock* b = blocks.AllocateBlock(em_address);
-    if (DoJit(em_address, b, nextPC))
+    ++m_orca_jit_compile_attempts;
+    const auto compile_start = std::chrono::steady_clock::now();
+    const bool jit_succeeded = DoJit(em_address, b, nextPC);
+    const u64 compile_time_ns = static_cast<u64>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - compile_start)
+            .count());
+    m_orca_jit_compile_time_ns += compile_time_ns;
+    m_orca_jit_max_compile_time_ns = std::max(m_orca_jit_max_compile_time_ns, compile_time_ns);
+
+    if (jit_succeeded)
     {
       // Code generation succeeded.
 
@@ -1071,12 +1095,31 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
 
       blocks.FinalizeBlock(*b, jo.enableBlocklink, code_block, m_code_buffer);
 
+      const std::size_t near_size = static_cast<std::size_t>(near_end - near_start);
+      const std::size_t far_size = static_cast<std::size_t>(far_end - far_start);
+      ++m_orca_jit_blocks_compiled;
+      m_orca_jit_guest_instructions += code_block.m_num_instructions;
+      m_orca_jit_near_bytes += near_size;
+      m_orca_jit_far_bytes += far_size;
+      m_orca_jit_last_pc = em_address;
+      m_orca_jit_max_near_bytes = std::max(m_orca_jit_max_near_bytes, near_size);
+      m_orca_jit_max_far_bytes = std::max(m_orca_jit_max_far_bytes, far_size);
+      m_orca_jit_max_block_instructions =
+          std::max(m_orca_jit_max_block_instructions, code_block.m_num_instructions);
+      if (*code_region_index == 0)
+        ++m_orca_jit_region_0_blocks;
+      else
+        ++m_orca_jit_region_1_blocks;
+
 #ifdef JIT_LOG_GENERATED_CODE
       LogGeneratedCode();
 #endif
       return;
     }
   }
+
+  ++m_orca_jit_compile_failures;
+  WriteOrcaJitStats("JIT code generation failed");
 
   if (clear_cache_and_retry_on_failure)
   {
@@ -1091,6 +1134,62 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
   PanicAlertFmtT("JIT failed to find code space after a cache clear. This should never happen. "
                  "Please report this incident on the bug tracker. Dolphin will now exit.");
   exit(-1);
+}
+
+
+void JitArm64::WriteOrcaJitStats(std::string_view reason) const
+{
+  const std::string log_directory = File::GetUserPath(D_LOGS_IDX);
+  if (!File::CreateDirs(log_directory))
+    return;
+
+  std::string output = fmt::format(
+      "Orca Lite ARM64 JIT diagnostics\n"
+      "reason={}\n"
+      "blocks_compiled={}\n"
+      "guest_instructions_compiled={}\n"
+      "near_code_bytes_total={}\n"
+      "far_code_bytes_total={}\n"
+      "cache_clears={}\n"
+      "compile_failures={}\n"
+      "region_0_blocks={}\n"
+      "region_1_blocks={}\n"
+      "last_guest_pc=0x{:08X}\n"
+      "max_near_bytes_per_block={}\n"
+      "max_far_bytes_per_block={}\n"
+      "max_guest_instructions_per_block={}\n"
+      "analyze_attempts={}\n"
+      "analyze_time_ns_total={}\n"
+      "analyze_time_ns_average={}\n"
+      "analyze_time_ns_max={}\n"
+      "compile_attempts={}\n"
+      "compile_time_ns_total={}\n"
+      "compile_time_ns_average={}\n"
+      "compile_time_ns_max={}\n"
+      "fastmem_enabled={}\n"
+      "fastmem_arena_enabled={}\n"
+      "memcheck_enabled={}\n",
+      reason, m_orca_jit_blocks_compiled, m_orca_jit_guest_instructions, m_orca_jit_near_bytes,
+      m_orca_jit_far_bytes, m_orca_jit_cache_clears, m_orca_jit_compile_failures,
+      m_orca_jit_region_0_blocks, m_orca_jit_region_1_blocks, m_orca_jit_last_pc,
+      m_orca_jit_max_near_bytes, m_orca_jit_max_far_bytes, m_orca_jit_max_block_instructions,
+      m_orca_jit_analyze_attempts, m_orca_jit_analyze_time_ns,
+      m_orca_jit_analyze_attempts == 0 ? 0 :
+          m_orca_jit_analyze_time_ns / m_orca_jit_analyze_attempts,
+      m_orca_jit_max_analyze_time_ns, m_orca_jit_compile_attempts, m_orca_jit_compile_time_ns,
+      m_orca_jit_compile_attempts == 0 ? 0 :
+          m_orca_jit_compile_time_ns / m_orca_jit_compile_attempts,
+      m_orca_jit_max_compile_time_ns, jo.fastmem, jo.fastmem_arena, jo.memcheck);
+
+  for (const auto& [name, stats] : GetMemoryStats())
+  {
+    output += fmt::format("{}_free_bytes={}\n{}_fragmentation={:.6f}\n", name, stats.first,
+                          name, stats.second);
+  }
+
+  const std::string path = log_directory + "orca_jit_stats.txt";
+  if (!File::WriteStringToFile(path, output))
+    WARN_LOG_FMT(DYNA_REC, "Orca Lite: failed to write JIT diagnostics to {}", path);
 }
 
 void JitArm64::EraseSingleBlock(const JitBlock& block)
