@@ -59,11 +59,13 @@ La rama `orca-lite-jit-diagnostics` escribe `orca_jit_stats.txt` en el directori
 `/sdcard/dolphin-emu/Logs/orca_jit_stats.txt`.
 
 El archivo se escribe al iniciar el JIT, al cerrar el núcleo y cuando ocurre un fallo de
-compilación. Las estadísticas finales incluyen bloques compilados, instrucciones PowerPC
-traducidas, bytes de código near/far, vaciados de caché, fallos de compilación y espacio
-libre/fragmentación de las cuatro regiones. Los contadores se actualizan durante la compilación
-de bloques; no se añade instrumentación a cada instrucción emulada ni escritura de archivos
-periódica durante la compilación normal, para evitar pausas de E/S en el hilo del emulador.
+compilación. Las estadísticas incluyen bloques compilados, instrucciones PowerPC traducidas,
+bytes de código near/far, tiempo total/promedio/máximo de generación de cada bloque, vaciados
+de caché, fallos de compilación y espacio libre/fragmentación de las cuatro regiones. El tiempo
+medido cubre DoJit (generación del código anfitrión), no la ejecución del juego ni el análisis
+previo del bloque. Los contadores y las dos lecturas del reloj se ejecutan solo al compilar
+bloques; no se añade instrumentación a cada instrucción emulada ni escritura periódica de
+archivos durante la compilación normal.
 
 Esta rama es solo de diagnóstico: no cambia la política de Fastmem, la asignación de memoria,
 la velocidad de la CPU emulada ni la lógica de los juegos.
