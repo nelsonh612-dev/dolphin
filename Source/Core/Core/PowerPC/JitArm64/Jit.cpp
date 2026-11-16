@@ -1024,7 +1024,15 @@ void JitArm64::Jit(u32 em_address, bool clear_cache_and_retry_on_failure)
   // Analyze the block, collect all instructions it is made of (including inlining,
   // if that is enabled), reorder instructions for optimal performance, and join joinable
   // instructions.
+  ++m_orca_jit_analyze_attempts;
+  const auto analyze_start = std::chrono::steady_clock::now();
   const u32 nextPC = analyzer.Analyze(em_address, &code_block, &m_code_buffer, block_size);
+  const u64 analyze_time_ns = static_cast<u64>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now() - analyze_start)
+          .count());
+  m_orca_jit_analyze_time_ns += analyze_time_ns;
+  m_orca_jit_max_analyze_time_ns = std::max(m_orca_jit_max_analyze_time_ns, analyze_time_ns);
 
   if (code_block.m_memory_exception)
   {
@@ -1150,6 +1158,10 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       "max_near_bytes_per_block={}\n"
       "max_far_bytes_per_block={}\n"
       "max_guest_instructions_per_block={}\n"
+      "analyze_attempts={}\n"
+      "analyze_time_ns_total={}\n"
+      "analyze_time_ns_average={}\n"
+      "analyze_time_ns_max={}\n"
       "compile_attempts={}\n"
       "compile_time_ns_total={}\n"
       "compile_time_ns_average={}\n"
@@ -1161,7 +1173,10 @@ void JitArm64::WriteOrcaJitStats(std::string_view reason) const
       m_orca_jit_far_bytes, m_orca_jit_cache_clears, m_orca_jit_compile_failures,
       m_orca_jit_region_0_blocks, m_orca_jit_region_1_blocks, m_orca_jit_last_pc,
       m_orca_jit_max_near_bytes, m_orca_jit_max_far_bytes, m_orca_jit_max_block_instructions,
-      m_orca_jit_compile_attempts, m_orca_jit_compile_time_ns,
+      m_orca_jit_analyze_attempts, m_orca_jit_analyze_time_ns,
+      m_orca_jit_analyze_attempts == 0 ? 0 :
+          m_orca_jit_analyze_time_ns / m_orca_jit_analyze_attempts,
+      m_orca_jit_max_analyze_time_ns, m_orca_jit_compile_attempts, m_orca_jit_compile_time_ns,
       m_orca_jit_compile_attempts == 0 ? 0 :
           m_orca_jit_compile_time_ns / m_orca_jit_compile_attempts,
       m_orca_jit_max_compile_time_ns, jo.fastmem, jo.fastmem_arena, jo.memcheck);
