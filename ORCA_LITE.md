@@ -60,7 +60,7 @@ La rama `orca-lite-jit-diagnostics` escribe `orca_jit_stats.txt` en el directori
 
 El archivo se escribe al iniciar el JIT, al cerrar el núcleo y cuando ocurre un fallo de
 compilación. Las estadísticas incluyen bloques compilados, instrucciones PowerPC traducidas,
-bytes de código near/far, tiempo total/promedio/máximo de generación de cada bloque, vaciados
+bytes de código near/far, número de intentos y tiempo total/promedio/máximo de generación por intento (incluidos los fallidos), vaciados
 de caché, fallos de compilación y espacio libre/fragmentación de las cuatro regiones. El tiempo
 medido cubre DoJit (generación del código anfitrión), no la ejecución del juego ni el análisis
 previo del bloque. Los contadores y las dos lecturas del reloj se ejecutan solo al compilar
