@@ -60,12 +60,15 @@ La rama `orca-lite-jit-diagnostics` escribe `orca_jit_stats.txt` en el directori
 
 El archivo se escribe al iniciar el JIT, al cerrar el núcleo y cuando ocurre un fallo de
 compilación. Las estadísticas incluyen bloques compilados, instrucciones PowerPC traducidas,
-bytes de código near/far, número de intentos y tiempo total/promedio/máximo de generación por intento (incluidos los fallidos), vaciados
-de caché, fallos de compilación y espacio libre/fragmentación de las cuatro regiones. El tiempo
-medido cubre DoJit (generación del código anfitrión), no la ejecución del juego ni el análisis
-previo del bloque. Los contadores y las dos lecturas del reloj se ejecutan solo al compilar
-bloques; no se añade instrumentación a cada instrucción emulada ni escritura periódica de
-archivos durante la compilación normal.
+bytes de código near/far, vaciados de caché, fallos de compilación y espacio libre/fragmentación
+de las cuatro regiones. Se miden por separado el análisis previo del bloque
+(`analyzer.Analyze`) y la generación del código anfitrión (`DoJit`), con intentos, tiempo
+total, promedio y máximo para cada fase. El promedio de DoJit incluye compilaciones fallidas;
+el de análisis incluye cada llamada al analizador, incluso si la traducción posterior termina
+en una excepción de memoria. Ninguna métrica mide la ejecución del juego. Los contadores y las
+lecturas del reloj se ejecutan solo durante la compilación de bloques; no se añade
+instrumentación a cada instrucción emulada ni escritura periódica de archivos durante la
+compilación normal.
 
 Esta rama es solo de diagnóstico: no cambia la política de Fastmem, la asignación de memoria,
 la velocidad de la CPU emulada ni la lógica de los juegos.
